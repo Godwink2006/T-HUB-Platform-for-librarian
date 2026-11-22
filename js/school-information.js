@@ -1,5 +1,51 @@
 let originalSchoolData = {};
 let schoolInformationUser = null;
+const SCHOOL_INFO_CACHE_PAGE = "school-information";
+
+function populateSchoolForm(data) {
+  if (!data) return;
+  const logoImg = document.getElementById("schoolLogoPreview");
+  if (logoImg && data.logo_url) {
+    logoImg.src = data.logo_url;
+  }
+
+  setValue("schoolName", data.school_name);
+  setValue("schoolMotto", data.school_motto);
+  setValue("schoolEmail", data.email);
+  setValue("alternativePhone", data.alternative_phone);
+  setValue("schoolWebsite", data.website);
+  setValue("schoolAddress", data.address);
+  setValue("schoolCity", data.city);
+  setValue("schoolCountry", data.country);
+
+  setValue("principalName", data.principal_name);
+  setValue("principalEmail", data.principal_email);
+  setValue("principalPhone", data.principal_phone);
+
+  setValue("schoolType", data.school_type);
+  setValue("educationLevel", data.education_level);
+}
+
+function restoreCachedSchoolInformation() {
+  try {
+    const cached = window.libraryPageCache?.readLast(SCHOOL_INFO_CACHE_PAGE);
+    if (cached?.data) {
+      originalSchoolData = { ...cached.data };
+      populateSchoolForm(originalSchoolData);
+      const loader = document.getElementById("formLoader");
+      const form =
+        document.getElementById("schoolInformationForm") ||
+        document.getElementById("schoolProfileForm") ||
+        document.querySelector("form");
+      if (loader) loader.style.display = "none";
+      if (form) form.classList.add("auth-ready");
+      return true;
+    }
+  } catch (error) {
+    console.warn("Could not restore cached school info:", error);
+  }
+  return false;
+}
 
 async function compressImageToBlob(file, maxWidth = 800, quality = 0.7) {
   return new Promise((resolve, reject) => {
@@ -230,27 +276,10 @@ async function loadSchoolProfile() {
 
     if (data) {
       existingRecordId = data.id;
-
-      const logoImg = document.getElementById("schoolLogoPreview");
-      if (logoImg && data.logo_url) {
-        logoImg.src = data.logo_url;
+      populateSchoolForm(data);
+      if (user?.id) {
+        window.libraryPageCache?.write(SCHOOL_INFO_CACHE_PAGE, user.id, data);
       }
-
-      setValue("schoolName", data.school_name);
-      setValue("schoolMotto", data.school_motto);
-      setValue("schoolEmail", data.email);
-      setValue("alternativePhone", data.alternative_phone);
-      setValue("schoolWebsite", data.website);
-      setValue("schoolAddress", data.address);
-      setValue("schoolCity", data.city);
-      setValue("schoolCountry", data.country);
-
-      setValue("principalName", data.principal_name);
-      setValue("principalEmail", data.principal_email);
-      setValue("principalPhone", data.principal_phone);
-
-      setValue("schoolType", data.school_type);
-      setValue("educationLevel", data.education_level);
     }
 
     originalSchoolData = { ...data };
@@ -548,6 +577,8 @@ function resetToOriginalData() {
   }
 }
 document.addEventListener("DOMContentLoaded", async () => {
+  restoreCachedSchoolInformation();
+
   const form =
     document.getElementById("schoolInformationForm") ||
     document.getElementById("schoolProfileForm") ||

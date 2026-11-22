@@ -1,3 +1,5 @@
+const NOTIFICATIONS_CACHE_PAGE = "notifications";
+
 document.addEventListener("DOMContentLoaded", async () => {
   const notificationList = document.getElementById("fullNotificationList");
   const markAllReadBtn = document.getElementById("markAllReadBtn");
@@ -5,6 +7,17 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   let currentFilter = "all";
   let notificationsData = [];
+
+  // Restore cached notifications immediately for zero-latency UI
+  try {
+    const cached = window.libraryPageCache?.readLast(NOTIFICATIONS_CACHE_PAGE);
+    if (cached?.data && Array.isArray(cached.data) && cached.data.length > 0) {
+      notificationsData = cached.data;
+      renderNotifications();
+    }
+  } catch (error) {
+    console.warn("Could not restore cached notifications:", error);
+  }
 
   const {
     data: { session },
@@ -16,6 +29,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
   const userId = session.user.id;
 
+  function saveNotificationsCache() {
+    if (userId) {
+      window.libraryPageCache?.write(NOTIFICATIONS_CACHE_PAGE, userId, notificationsData);
+    }
+  }
+
   async function fetchNotifications() {
     try {
       const { data, error } = await window.supabaseClient
@@ -26,10 +45,13 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       if (error) throw error;
       notificationsData = data || [];
+      saveNotificationsCache();
       renderNotifications();
     } catch (err) {
       console.error("Error fetching notifications:", err);
-      notificationList.innerHTML = `<div style="padding: 24px; text-align: center; color: #ef4444;">Failed to load notifications.</div>`;
+      if (!notificationsData || notificationsData.length === 0) {
+        notificationList.innerHTML = `<div style="padding: 24px; text-align: center; color: #ef4444;">Failed to load notifications.</div>`;
+      }
     }
   }
 
@@ -103,6 +125,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (!data) throw new Error("This notification could not be deleted.");
 
       notificationsData = notificationsData.filter((item) => item.id !== id);
+      saveNotificationsCache();
       renderNotifications();
       if (typeof showToast === "function") {
         showToast("Notification deleted.", "success");
@@ -128,6 +151,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       notificationsData = notificationsData.map((n) =>
         n.id === id ? { ...n, is_read: true } : n,
       );
+      saveNotificationsCache();
       renderNotifications();
     } catch (err) {
       console.error("Error updating notification:", err);
@@ -152,6 +176,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         ...n,
         is_read: true,
       }));
+      saveNotificationsCache();
       renderNotifications();
     } catch (err) {
       console.error("Error marking all as read:", err);

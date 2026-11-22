@@ -33,7 +33,6 @@
 
 /* Keep the librarian UI's cards, controls, and dialogs rounded on every screen. */
 body :is(
-    .sidebar,
     .menu li a,
     .dashboard-card,
     .setting-card,
@@ -125,17 +124,22 @@ body td {
       .dashboard-main-content,
       .books-main-content,
       .students-main-content,
-      .settings-main-content
+      .settings-main-content,
+      .librarys-report-main-content
     ) {
     min-width: 0;
+    margin-left: 260px !important;
+    width: calc(100% - 260px) !important;
     padding: 32px clamp(30px, 2.4vw, 48px);
+    box-sizing: border-box;
   }
 
   :is(
       .dashboard-main-content,
       .books-main-content,
       .students-main-content,
-      .settings-main-content
+      .settings-main-content,
+      .librarys-report-main-content
     ) > .topbar {
     gap: 24px;
     margin-bottom: 32px;
@@ -190,17 +194,6 @@ body td {
   .book-card-grid {
     grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
     gap: 24px;
-  }
-
-  .librarys-report-main-content {
-    max-width: 1920px;
-    margin: 0 auto;
-    padding: 36px clamp(30px, 2.4vw, 48px);
-  }
-
-  .librarys-report-main-content > .topbar {
-    gap: 24px;
-    margin-bottom: 32px;
   }
 
   .librarys-report-main-content .toolbar {

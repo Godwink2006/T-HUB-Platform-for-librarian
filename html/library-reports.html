@@ -14,6 +14,7 @@
     />
     <title>Library Reports - T-HUB</title>
     <link rel="stylesheet" href="/css/library-reports.css" />
+    <link rel="stylesheet" href="/css/utils.css" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -35,6 +36,35 @@
   </head>
   <body>
     <div class="librarys-report-container">
+      <button
+        class="menu-toggle"
+        id="menuToggle"
+        aria-label="Toggle Navigation"
+      >
+        <i class="fa-solid fa-bars"></i>
+      </button>
+
+      <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+      <aside class="sidebar">
+        <div class="logo">
+          <img
+            id="appHeaderLogo"
+            src="https://api.dicebear.com/7.x/initials/svg?seed=Library"
+            alt="Library Logo"
+          />
+          <h2>T-HUB</h2>
+        </div>
+
+        <ul class="menu">
+          <li><a href="dashboard.html"><i class="fa-solid fa-house"></i><span>Dashboard</span></a></li>
+          <li><a href="books.html"><i class="fa-solid fa-book-open"></i><span>Catalog</span></a></li>
+          <li><a href="library.html"><i class="fa-solid fa-arrow-right-arrow-left"></i><span>Inventory &amp; Circulation</span></a></li>
+          <li class="active"><a href="library-reports.html"><i class="fa-solid fa-chart-line"></i><span>Library Reports</span></a></li>
+          <li><a href="settings.html"><i class="fa-solid fa-gear"></i><span>Settings</span></a></li>
+        </ul>
+      </aside>
+
       <main class="librarys-report-main-content">
         <header class="topbar">
           <div>
@@ -127,6 +157,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.1"></script>
     <script src="/js/supabase.js"></script>
     <script src="/js/utils.js"></script>
+    <script src="/js/spa-router.js"></script>
     <script src="/js/reports-common.js"></script>
     <script src="/js/library-reports.js"></script>
     <script src="/js/app-icons.js"></script>

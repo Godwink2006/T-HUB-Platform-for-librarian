@@ -74,17 +74,36 @@
           </div>
         </header>
 
-        <div id="settingsSkeleton" class="setting-cards">
-          <div class="setting-card skeleton"><div class="skeleton-title"></div><div class="skeleton-text"></div><div class="skeleton-btn"></div></div>
-          <div class="setting-card skeleton"><div class="skeleton-title"></div><div class="skeleton-text"></div><div class="skeleton-btn"></div></div>
-          <div class="setting-card skeleton"><div class="skeleton-title"></div><div class="skeleton-text"></div><div class="skeleton-btn"></div></div>
-        </div>
-
-        <section
-          class="setting-cards"
-          id="settingsContainer"
-          style="display: none"
-        ></section>
+        <section class="setting-cards" id="settingsContainer">
+          <div class="setting-card">
+            <h4><i class="fa-solid fa-user" aria-hidden="true"></i> My Profile</h4>
+            <p>Update your librarian profile and sign-in details.</p>
+            <button onclick="window.location.href = 'my-profile.html'" class="manage-btn">
+              Manage Profile <i class="fa-solid fa-chevron-right"></i>
+            </button>
+          </div>
+          <div class="setting-card">
+            <h4><i class="fa-solid fa-school" aria-hidden="true"></i> School Information</h4>
+            <p>View your school’s name, identity, and contact information.</p>
+            <button onclick="window.location.href = 'school-information.html'" class="manage-btn">
+              View School Information <i class="fa-solid fa-chevron-right"></i>
+            </button>
+          </div>
+          <div class="setting-card">
+            <h4><i class="fa-solid fa-bell" aria-hidden="true"></i> Push Notifications</h4>
+            <p id="pushNotificationStatus">Choose whether T-HUB notifications are enabled on this device.</p>
+            <button id="enablePushNotificationsBtn" type="button" class="manage-btn">
+              Enable on This Device <i class="fa-solid fa-bell"></i>
+            </button>
+          </div>
+          <div class="setting-card">
+            <h4><i class="fa-solid fa-right-from-bracket" aria-hidden="true"></i> Log Out</h4>
+            <p>Sign out on this device and remove saved data for this site.</p>
+            <button id="clearBrowserDataBtn" type="button" class="manage-btn clear-browser-data-btn">
+              Log Out <i class="fa-solid fa-right-from-bracket"></i>
+            </button>
+          </div>
+        </section>
       </main>
     </div>
 
@@ -118,6 +137,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.1"></script>
     <script src="/js/supabase.js"></script>
     <script src="/js/utils.js"></script>
+    <script src="/js/spa-router.js"></script>
     <script src="/js/push-config.js"></script>
     <script src="/js/settings.js"></script>
       <script src="/js/app-icons.js"></script>

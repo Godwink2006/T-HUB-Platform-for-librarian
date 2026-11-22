@@ -576,16 +576,21 @@ async function loadBooksTable(options = {}) {
   if (libraryBooksLoading || (append && !libraryBooksHasMore)) return;
   libraryBooksLoading = true;
 
+  const hasExistingRows = tableBody.children.length > 0 && !tableBody.querySelector('.fa-spinner');
+  const hasCachedData = !append && ((loadedLibraryBooks && loadedLibraryBooks.length > 0) || hasExistingRows);
+
   if (!append) {
     libraryBooksOffset = 0;
     libraryBooksHasMore = false;
-    loadedLibraryBooks = [];
     if (nextButton) {
       nextButton.hidden = true;
       nextButton.disabled = false;
       nextButton.textContent = "Next";
     }
-    renderTableLoading();
+    if (!hasCachedData) {
+      loadedLibraryBooks = [];
+      renderTableLoading();
+    }
   } else if (nextButton) {
     nextButton.disabled = true;
     nextButton.textContent = "Loading...";
@@ -656,29 +661,31 @@ async function loadBooksTable(options = {}) {
       }
     }
 
-    // The initial load replaced the body with a loading row. Remove that row
-    // before inserting the first real page; append loads must keep prior rows.
+    // Replace table rows with fresh visible books on page 1, or append
     if (!append) tableBody.replaceChildren();
 
     visibleBooks.forEach((book) => {
       const activeBorrowedCount = (allBorrowings || []).filter(
         (borrowing) => borrowing.book_id === book.id,
       ).length;
+      book._cachedBorrowedCount = activeBorrowedCount;
       tableBody.appendChild(createLibraryBookRow(book, activeBorrowedCount));
     });
+
+    saveLibraryCache();
 
     applyLibraryBookFilters();
     attachBookActionListeners();
   } catch (err) {
     console.error("Error loading books table:", err);
-    if (!append) {
+    if (!append && !hasCachedData) {
       renderLibraryErrorRow(
         tableBody,
         libraryErrorMessage(err, "load"),
         () => loadBooksTable(),
       );
     }
-    if (typeof showToast === "function") {
+    if (typeof showToast === "function" && (!hasCachedData || navigator.onLine)) {
       showToast(libraryErrorMessage(err, "load"), "error");
     }
   } finally {
@@ -688,6 +695,140 @@ async function loadBooksTable(options = {}) {
       nextButton.disabled = false;
       nextButton.textContent = "Next";
     }
+  }
+}
+
+const LIBRARY_CACHE_PAGE = "library";
+const LIBRARY_DEDICATED_CACHE_KEY = "thubLibraryInventory:cachedBooks:v1";
+
+function getLibraryActiveUserId() {
+  for (const page of ["library", "dashboard", "books", "library-reports", "my-profile", "school-info"]) {
+    const val =
+      localStorage.getItem(`thubLibraryPageCache:v1:${page}:last-user`) ||
+      localStorage.getItem(`thubStudentPageCache:v1:${page}:last-user`);
+    if (val && val !== "librarian") return val;
+  }
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith("sb-") && key.endsWith("-auth-token")) {
+        const item = JSON.parse(localStorage.getItem(key) || "{}");
+        const uid = item?.user?.id || item?.currentSession?.user?.id;
+        if (uid) return uid;
+      }
+    }
+  } catch {}
+  return "librarian";
+}
+
+function saveLibraryCache() {
+  if (!loadedLibraryBooks || !Array.isArray(loadedLibraryBooks)) return;
+  try {
+    const payload = {
+      books: loadedLibraryBooks,
+      hasMore: libraryBooksHasMore,
+      savedAt: Date.now(),
+    };
+    const userId = getLibraryActiveUserId();
+    window.libraryPageCache?.write(LIBRARY_CACHE_PAGE, userId, payload);
+    if (userId !== "librarian") {
+      window.libraryPageCache?.write(LIBRARY_CACHE_PAGE, "librarian", payload);
+    }
+    localStorage.setItem(LIBRARY_DEDICATED_CACHE_KEY, JSON.stringify(payload));
+    localStorage.setItem("thubLibrary:canDelete", String(canDeleteLibraryBooks));
+  } catch (error) {
+    console.warn("Could not save library inventory cache:", error);
+  }
+}
+
+function restoreCachedLibraryPage() {
+  try {
+    const tableBody = document.getElementById("booksTableBody");
+    if (!tableBody) return false;
+
+    if (localStorage.getItem("thubLibrary:canDelete") === "true") {
+      canDeleteLibraryBooks = true;
+    }
+
+    let books = null;
+    let hasMore = false;
+
+    const cachedLast = window.libraryPageCache?.readLast(LIBRARY_CACHE_PAGE);
+    if (cachedLast?.data?.books && Array.isArray(cachedLast.data.books) && cachedLast.data.books.length > 0) {
+      books = cachedLast.data.books;
+      hasMore = cachedLast.data.hasMore === true;
+    }
+
+    if (!books) {
+      const activeId = getLibraryActiveUserId();
+      const cachedActive = window.libraryPageCache?.read(LIBRARY_CACHE_PAGE, activeId);
+      if (cachedActive?.data?.books && Array.isArray(cachedActive.data.books) && cachedActive.data.books.length > 0) {
+        books = cachedActive.data.books;
+        hasMore = cachedActive.data.hasMore === true;
+      }
+    }
+
+    if (!books) {
+      const cachedLib = window.libraryPageCache?.read(LIBRARY_CACHE_PAGE, "librarian");
+      if (cachedLib?.data?.books && Array.isArray(cachedLib.data.books) && cachedLib.data.books.length > 0) {
+        books = cachedLib.data.books;
+        hasMore = cachedLib.data.hasMore === true;
+      }
+    }
+
+    if (!books) {
+      const directRaw = localStorage.getItem(LIBRARY_DEDICATED_CACHE_KEY);
+      if (directRaw) {
+        try {
+          const direct = JSON.parse(directRaw);
+          if (direct?.books && Array.isArray(direct.books) && direct.books.length > 0) {
+            books = direct.books;
+            hasMore = direct.hasMore === true;
+          }
+        } catch {}
+      }
+    }
+
+    if (!books || books.length === 0) return false;
+
+    loadedLibraryBooks = books;
+    libraryBooksOffset = loadedLibraryBooks.length;
+    libraryBooksHasMore = hasMore;
+
+    tableBody.replaceChildren();
+    loadedLibraryBooks.forEach((book) => {
+      tableBody.appendChild(
+        createLibraryBookRow(book, book._cachedBorrowedCount || 0),
+      );
+    });
+
+    const departmentFilter = document.getElementById("libraryDepartmentFilter");
+    if (departmentFilter) {
+      const departmentNames = [
+        ...new Set(
+          loadedLibraryBooks
+            .map((b) => b.departments?.name)
+            .filter((n) => typeof n === "string" && n.trim()),
+        ),
+      ].sort((a, b) => a.localeCompare(b));
+
+      departmentFilter.replaceChildren(new Option("All Departments", ""));
+      departmentNames.forEach((n) => departmentFilter.appendChild(new Option(n, n)));
+    }
+
+    applyLibraryBookFilters();
+    attachBookActionListeners();
+
+    const nextButton = document.getElementById("nextLibraryBooksPage");
+    if (nextButton) {
+      nextButton.hidden = !libraryBooksHasMore;
+      nextButton.disabled = false;
+      nextButton.textContent = "Next";
+    }
+    return true;
+  } catch (error) {
+    console.warn("Could not restore cached library page:", error);
+    return false;
   }
 }
 
@@ -1965,9 +2106,19 @@ document
     openReturnModal(currentViewBookId);
   });
 
-document.addEventListener("DOMContentLoaded", () => {
+// Immediately restore cached books synchronously as soon as script runs
+restoreCachedLibraryPage();
+
+function initLibraryPage() {
+  restoreCachedLibraryPage();
   document
     .getElementById("nextLibraryBooksPage")
     ?.addEventListener("click", () => loadBooksTable({ append: true }));
   loadLibraryDeletePermission().finally(() => loadBooksTable());
-});
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initLibraryPage);
+} else {
+  initLibraryPage();
+}

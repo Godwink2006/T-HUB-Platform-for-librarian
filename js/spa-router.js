@@ -14,6 +14,7 @@
     "app-icons.js",
     "query-cache.js",
     "spa-router.js",
+    "push-config.js",
   ]);
   const SHARED_CSS = new Set(["utils.css", "app-visuals.css"]);
   const routerScript = document.currentScript;
@@ -404,6 +405,7 @@
       return;
     }
     if (!activeView?.safe || targetURL === activeView.url) {
+      if (targetURL === activeView?.url) return;
       location.href = url;
       return;
     }
@@ -482,7 +484,8 @@
       const url = new URL(link.href, location.href);
       if (url.origin !== location.origin || !/\.html$/i.test(url.pathname)) return;
       if (canonical(url.href) === activeView.url) {
-        if (navigating) event.preventDefault();
+        event.preventDefault();
+        closeSidebar();
         return;
       }
       if (link.target && link.target !== "_self") return;

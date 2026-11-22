@@ -82,14 +82,54 @@ function showMyProfileError(error, context = "profile", action = "update") {
   return message;
 }
 
-async function loadMyProfile() {
+const MY_PROFILE_CACHE_PAGE = "my-profile";
+
+function populateCachedMyProfile() {
+  const cached = window.libraryPageCache?.readLast(MY_PROFILE_CACHE_PAGE);
+  if (!cached?.data) return false;
+
+  currentProfileData = {
+    fullName: cached.data.fullName || "",
+    email: cached.data.email || "",
+    phone: cached.data.phone || "",
+    photoUrl: cached.data.photoUrl || DEFAULT_AVATAR,
+  };
+  populateProfileForm(currentProfileData);
+  checkProfileChanges();
+  return true;
+}
+
+function saveMyProfileCache(userId) {
+  if (!userId || !currentProfileData) return;
+  window.libraryPageCache?.write(MY_PROFILE_CACHE_PAGE, userId, {
+    ...currentProfileData,
+  });
+}
+
+async function loadMyProfile(options = {}) {
+  const refresh = options.refresh === true;
+
   try {
     const { data, error: authError } = await supabaseClient.auth.getUser();
     if (authError) throw authError;
     const user = data?.user;
 
     if (!user) {
+      window.libraryPageCache?.clearLast(MY_PROFILE_CACHE_PAGE);
       showMyProfileError({ status: 401 }, "profile", "load");
+      return;
+    }
+
+    const cached = window.libraryPageCache?.read(MY_PROFILE_CACHE_PAGE, user.id);
+    if (cached?.data && !refresh) {
+      currentProfileData = {
+        fullName: cached.data.fullName || "",
+        email: cached.data.email || "",
+        phone: cached.data.phone || "",
+        photoUrl: cached.data.photoUrl || DEFAULT_AVATAR,
+      };
+      populateProfileForm(currentProfileData);
+      checkProfileChanges();
       return;
     }
 
@@ -117,6 +157,7 @@ async function loadMyProfile() {
     };
 
     populateProfileForm(currentProfileData);
+    saveMyProfileCache(user.id);
 
     checkProfileChanges();
   } catch (error) {
@@ -360,6 +401,7 @@ function validateProfileInputs(fullName, email, phone) {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  populateCachedMyProfile();
   loadMyProfile();
 
   const profileForm = document.getElementById("myProfileForm");

@@ -4,7 +4,24 @@
  * overdue items, and detailed book status tracking.
  */
 
+const LIBRARY_REPORTS_CACHE_PAGE = "library-reports";
+
 document.addEventListener("DOMContentLoaded", async () => {
+  const summaryBody = document.getElementById("librarySummaryBody");
+  const detailBody = document.getElementById("libraryDetailBody");
+
+  // Restore cached report immediately so the user sees data with zero latency
+  try {
+    const cached = window.libraryPageCache?.readLast(LIBRARY_REPORTS_CACHE_PAGE);
+    if (cached?.data?.displayBooks && cached.data.displayBooks.length > 0) {
+      allBooksData = cached.data.allBooksData || cached.data.displayBooks;
+      renderSummary(cached.data.displayBooks, cached.data.globals || {});
+      renderDetails(cached.data.displayBooks);
+    }
+  } catch (error) {
+    console.warn("Could not restore cached library report:", error);
+  }
+
   const authCtx = await ReportsCommon.initAuth();
   if (!authCtx) return;
 
@@ -13,8 +30,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   // DOM Elements
   const filterDepartment = document.getElementById("filterDepartment");
   const filterStatus = document.getElementById("filterStatus");
-  const summaryBody = document.getElementById("librarySummaryBody");
-  const detailBody = document.getElementById("libraryDetailBody");
   const detailCount = document.getElementById("detailRecordCount");
 
   let allBooksData = [];
@@ -157,12 +172,22 @@ document.addEventListener("DOMContentLoaded", async () => {
         });
       }
 
-      renderSummary(displayBooks, {
+      const globals = {
         totalReturnedAll,
         totalOverdueAll,
         totalLostAll,
-      });
+      };
+
+      renderSummary(displayBooks, globals);
       renderDetails(displayBooks);
+
+      if (authCtx?.user?.id) {
+        window.libraryPageCache?.write(LIBRARY_REPORTS_CACHE_PAGE, authCtx.user.id, {
+          allBooksData,
+          displayBooks,
+          globals,
+        });
+      }
     } catch (err) {
       console.error("Error fetching library reports:", err);
       if (summaryBody) {

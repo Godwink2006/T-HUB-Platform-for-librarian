@@ -153,7 +153,7 @@ body.dashboard-auth-error-open .dashboard-auth-loading__content {
   background: #1d4ed8;
   color: #fff;
   padding: 25px;
-  border-radius: 20px;
+  border-radius: 0;
 }
 
 .logo {

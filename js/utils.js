@@ -416,6 +416,7 @@ window.loadTransferredStudentIdentitySnapshots = async function (studentIds) {
 
 window.forceLogout = async function () {
   window.clearAuthContext?.();
+  window.libraryPageCache?.clearAll();
   if (window.supabaseClient) {
     try {
       await window.supabaseClient.auth.signOut();
@@ -431,6 +432,148 @@ window.forceLogout = async function () {
     window.location.replace("/index.html");
   }
 };
+
+(function initPageCacheManager() {
+  const CACHE_PREFIX = "thubLibraryPageCache:v1:";
+  const LEGACY_CACHE_PREFIX = "thubStudentPageCache:v1:";
+
+  function lastUserKey(page) {
+    return `${CACHE_PREFIX}${page}:last-user`;
+  }
+
+  function pageDataKey(page, userId) {
+    return `${CACHE_PREFIX}${page}:${userId}`;
+  }
+
+  function readLast(page) {
+    try {
+      const userId =
+        localStorage.getItem(lastUserKey(page)) ||
+        localStorage.getItem(`${LEGACY_CACHE_PREFIX}${page}:last-user`);
+      if (!userId) return null;
+      const raw =
+        localStorage.getItem(pageDataKey(page, userId)) ||
+        localStorage.getItem(`${LEGACY_CACHE_PREFIX}${page}:${userId}`);
+      if (!raw) return null;
+      const cached = JSON.parse(raw);
+      if (!cached || cached.userId !== userId || !cached.data) return null;
+      return cached;
+    } catch (error) {
+      console.warn(`Could not read the saved ${page} page:`, error);
+      return null;
+    }
+  }
+
+  function read(page, userId) {
+    if (!userId) return null;
+    try {
+      const raw =
+        localStorage.getItem(pageDataKey(page, userId)) ||
+        localStorage.getItem(`${LEGACY_CACHE_PREFIX}${page}:${userId}`);
+      if (!raw) return null;
+      const cached = JSON.parse(raw);
+      if (!cached || cached.userId !== userId || !cached.data) return null;
+      return cached;
+    } catch (error) {
+      console.warn(`Could not read the saved ${page} page:`, error);
+      return null;
+    }
+  }
+
+  function write(page, userId, data) {
+    if (!userId) return;
+    try {
+      const payload = JSON.stringify({
+        userId,
+        savedAt: Date.now(),
+        data,
+      });
+      localStorage.setItem(pageDataKey(page, userId), payload);
+      localStorage.setItem(lastUserKey(page), userId);
+      localStorage.setItem(`${LEGACY_CACHE_PREFIX}${page}:${userId}`, payload);
+      localStorage.setItem(`${LEGACY_CACHE_PREFIX}${page}:last-user`, userId);
+    } catch (error) {
+      console.warn(`Could not save the ${page} page locally:`, error);
+    }
+  }
+
+  function clearLast(page) {
+    try {
+      localStorage.removeItem(lastUserKey(page));
+      localStorage.removeItem(`${LEGACY_CACHE_PREFIX}${page}:last-user`);
+    } catch (error) {
+      console.warn(`Could not clear the saved ${page} page pointer:`, error);
+    }
+  }
+
+  function clearAll() {
+    for (const storage of [localStorage, sessionStorage]) {
+      try {
+        for (let index = storage.length - 1; index >= 0; index -= 1) {
+          const key = storage.key(index);
+          if (
+            key?.startsWith(CACHE_PREFIX) ||
+            key?.startsWith(LEGACY_CACHE_PREFIX) ||
+            key?.startsWith("thubLibraryBooksCatalog:") ||
+            key?.startsWith("thubStudentBooksCatalog:") ||
+            key?.startsWith("thubLibraryInventory:") ||
+            key === "thubLibraryBooksAccess:v1" ||
+            key === "thubStudentBooksAccess:v1"
+          ) {
+            storage.removeItem(key);
+          }
+        }
+      } catch (error) {
+        console.warn("Could not clear saved library page data:", error);
+      }
+    }
+  }
+
+  function persistExistingSessionCaches() {
+    try {
+      for (let index = sessionStorage.length - 1; index >= 0; index -= 1) {
+        const key = sessionStorage.key(index);
+        if (
+          !key ||
+          !(
+            key.startsWith(CACHE_PREFIX) ||
+            key.startsWith(LEGACY_CACHE_PREFIX) ||
+            key.startsWith("thubLibraryBooksCatalog:") ||
+            key.startsWith("thubStudentBooksCatalog:") ||
+            key === "thubLibraryBooksAccess:v1" ||
+            key === "thubStudentBooksAccess:v1"
+          )
+        )
+          continue;
+
+        const value = sessionStorage.getItem(key);
+        if (value !== null && localStorage.getItem(key) === null) {
+          localStorage.setItem(key, value);
+        }
+        sessionStorage.removeItem(key);
+      }
+    } catch (error) {
+      console.warn("Could not preserve this tab's page cache:", error);
+    }
+  }
+
+  persistExistingSessionCaches();
+
+  const cacheApi = Object.freeze({
+    read,
+    readLast,
+    write,
+    clearLast,
+    clearAll,
+  });
+  window.libraryPageCache = cacheApi;
+  window.studentPageCache = cacheApi;
+  window.pageCache = cacheApi;
+
+  window.supabaseClient?.auth?.onAuthStateChange((event) => {
+    if (event === "SIGNED_OUT") clearAll();
+  });
+})();
 async function checkPageAccess() {
   const currentPage = window.location.pathname.split("/").pop();
 
@@ -560,7 +703,20 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (overlay) overlay.addEventListener("click", closeMenu);
 
   document.querySelectorAll(".menu a").forEach((link) => {
-    link.addEventListener("click", closeMenu);
+    link.addEventListener("click", (e) => {
+      closeMenu();
+      const href = link.getAttribute("href");
+      if (!href || href === "#") return;
+      try {
+        const targetPath = new URL(link.href, location.href).pathname.split("/").pop();
+        const currentPath = location.pathname.split("/").pop();
+        if (targetPath && targetPath === currentPath) {
+          e.preventDefault();
+        }
+      } catch {
+        // ignore url parsing error
+      }
+    });
   });
 
   document.addEventListener(

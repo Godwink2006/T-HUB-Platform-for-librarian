@@ -1,10 +1,118 @@
 let allCatalogBooks = [];
 const BOOKS_PAGE_SIZE = 30;
+const BOOKS_CACHE_PREFIX = "thubLibraryBooksCatalog:v2:";
+const LEGACY_BOOKS_CACHE_PREFIX = "thubStudentBooksCatalog:v2:";
+const BOOKS_LAST_ACCESS_KEY = "thubLibraryBooksAccess:v1";
+const LEGACY_BOOKS_LAST_ACCESS_KEY = "thubStudentBooksAccess:v1";
 let booksOffset = 0;
 let booksHasMore = false;
 let booksLoading = false;
 let booksAccessLoading = false;
+let booksAccessVerified = false;
 let booksGraduatedAccess = false;
+let booksCacheKey = "";
+let booksUserId = "";
+let booksSchoolId = "";
+let booksCacheRestored = false;
+
+function readBooksCache() {
+  if (!booksCacheKey) return null;
+  try {
+    const raw = localStorage.getItem(booksCacheKey) ||
+      localStorage.getItem(booksCacheKey.replace(BOOKS_CACHE_PREFIX, LEGACY_BOOKS_CACHE_PREFIX));
+    const cached = JSON.parse(raw || "null");
+    if (!cached || !Array.isArray(cached.books)) return null;
+    return cached;
+  } catch (error) {
+    console.warn("Could not read the saved books catalog:", error);
+    return null;
+  }
+}
+
+function saveBooksCache() {
+  if (!booksCacheKey) return;
+  try {
+    const payload = JSON.stringify({
+      savedAt: Date.now(),
+      userId: booksUserId,
+      schoolId: booksSchoolId,
+      books: allCatalogBooks,
+      hasMore: booksHasMore,
+    });
+    localStorage.setItem(booksCacheKey, payload);
+    localStorage.setItem(
+      booksCacheKey.replace(BOOKS_CACHE_PREFIX, LEGACY_BOOKS_CACHE_PREFIX),
+      payload,
+    );
+  } catch (error) {
+    console.warn("Could not save the books catalog locally:", error);
+  }
+}
+
+function saveBooksAccess() {
+  if (!booksUserId) return;
+  try {
+    const payload = JSON.stringify({
+      userId: booksUserId,
+      studentId: booksUserId,
+      schoolId: booksSchoolId,
+      cacheKey: booksCacheKey,
+    });
+    localStorage.setItem(BOOKS_LAST_ACCESS_KEY, payload);
+    localStorage.setItem(LEGACY_BOOKS_LAST_ACCESS_KEY, payload);
+  } catch (error) {
+    console.warn("Could not save books access locally:", error);
+  }
+}
+
+function restoreCachedBooksPage() {
+  try {
+    const savedAccess = JSON.parse(
+      localStorage.getItem(BOOKS_LAST_ACCESS_KEY) ||
+        localStorage.getItem(LEGACY_BOOKS_LAST_ACCESS_KEY) ||
+        "null",
+    );
+    const savedUserId = savedAccess?.userId || savedAccess?.studentId;
+    if (!savedUserId) return false;
+
+    booksUserId = savedUserId;
+    booksSchoolId = savedAccess.schoolId || "";
+    booksGraduatedAccess = false;
+    booksCacheKey = `${BOOKS_CACHE_PREFIX}${booksUserId}:${booksSchoolId || "no-school"}`;
+
+    const cachedCatalog = readBooksCache();
+    if (!cachedCatalog || (cachedCatalog.userId && cachedCatalog.userId !== booksUserId)) {
+      return false;
+    }
+
+    allCatalogBooks = cachedCatalog.books;
+    booksOffset = allCatalogBooks.length;
+    booksHasMore = cachedCatalog.hasMore === true;
+    booksCacheRestored = true;
+
+    const catalog = document.getElementById("booksCatalog");
+    const mainContent = document.querySelector(".students-main-content");
+    if (catalog) catalog.hidden = false;
+    mainContent?.classList.remove("books-access-checking");
+
+    const query =
+      document.getElementById("catalogSearchInput")?.value.toLowerCase().trim() || "";
+    renderBookCards(filterCatalogBooks(query));
+    updateBooksNextButton();
+    return true;
+  } catch (error) {
+    console.warn("Could not restore the saved Books page:", error);
+    return false;
+  }
+}
+
+function updateBooksNextButton() {
+  const nextButton = document.getElementById("nextBooksPage");
+  if (!nextButton) return;
+  nextButton.hidden = !booksHasMore;
+  nextButton.disabled = false;
+  nextButton.textContent = "Next";
+}
 
 function booksErrorMessage(error, action = "load") {
   const code = String(error?.code || "").toLowerCase();
@@ -72,14 +180,20 @@ function hideBooksNotice() {
   }
 }
 
-async function initializeBooksPage() {
+async function initializeBooksPage(options = {}) {
   if (booksAccessLoading) return;
+  const forceCatalogRefresh = options.forceCatalogRefresh === true;
+  const cachedUserId = booksUserId;
+  const cachedSchoolId = booksSchoolId;
+  let matchingCachedCatalog = false;
+
   booksAccessLoading = true;
+  booksAccessVerified = false;
   booksGraduatedAccess = false;
   const catalog = document.getElementById("booksCatalog");
   const mainContent = document.querySelector(".students-main-content");
-  if (catalog) catalog.hidden = true;
-  mainContent?.classList.add("books-access-checking");
+  if (!booksCacheRestored && catalog) catalog.hidden = true;
+  if (!booksCacheRestored) mainContent?.classList.add("books-access-checking");
   hideBooksNotice();
 
   try {
@@ -92,12 +206,19 @@ async function initializeBooksPage() {
       throw error;
     }
 
+    matchingCachedCatalog = booksCacheRestored && cachedUserId === authData.user.id;
+
     const { data: profile, error: profileError } = await window.supabaseClient
       .from("profiles")
       .select("role, school_id")
       .eq("id", authData.user.id)
       .single();
     if (profileError) throw profileError;
+
+    booksUserId = authData.user.id;
+    booksSchoolId = profile?.school_id || "";
+    matchingCachedCatalog = matchingCachedCatalog && cachedSchoolId === booksSchoolId;
+    booksCacheKey = `${BOOKS_CACHE_PREFIX}${booksUserId}:${booksSchoolId || "no-school"}`;
 
     if (String(profile?.role || "").trim().toLowerCase() === "student") {
       let enrollmentQuery = window.supabaseClient
@@ -115,7 +236,20 @@ async function initializeBooksPage() {
       );
     }
 
+    booksAccessVerified = true;
+    saveBooksAccess();
+
     if (booksGraduatedAccess) {
+      try {
+        localStorage.removeItem(booksCacheKey);
+      } catch (error) {
+        console.warn("Could not clear the saved Books catalog:", error);
+      }
+      allCatalogBooks = [];
+      booksOffset = 0;
+      booksHasMore = false;
+      booksCacheRestored = false;
+      document.getElementById("bookCardGrid")?.replaceChildren();
       mainContent?.classList.remove("books-access-checking");
       showBooksNotice(
         "Books are unavailable because your enrollment at this school is marked as graduated or transferred. Contact your school administrator if you think this is a mistake.",
@@ -127,11 +261,18 @@ async function initializeBooksPage() {
     mainContent?.classList.remove("books-access-checking");
     hideBooksNotice();
     if (catalog) catalog.hidden = false;
+
+    if (matchingCachedCatalog && !forceCatalogRefresh) {
+      saveBooksCache();
+      updateBooksNextButton();
+      return;
+    }
+
     await loadBookCatalog();
   } catch (error) {
     console.error("Could not determine Books page access:", error);
     mainContent?.classList.remove("books-access-checking");
-    showBooksNotice(booksErrorMessage(error), "error", initializeBooksPage);
+    showBooksNotice(booksErrorMessage(error), "error", () => initializeBooksPage({ forceCatalogRefresh: true }));
   } finally {
     booksAccessLoading = false;
   }
@@ -208,6 +349,7 @@ async function loadBookCatalog(options = {}) {
     allCatalogBooks = append
       ? allCatalogBooks.concat(catalogPage)
       : catalogPage;
+    saveBooksCache();
     const query = document
       .getElementById("catalogSearchInput")
       ?.value.toLowerCase().trim() || "";
@@ -220,11 +362,7 @@ async function loadBookCatalog(options = {}) {
     }
   } finally {
     booksLoading = false;
-    if (nextButton) {
-      nextButton.hidden = !booksHasMore;
-      nextButton.disabled = false;
-      nextButton.textContent = "Next";
-    }
+    updateBooksNextButton();
   }
 }
 
@@ -322,6 +460,8 @@ document.addEventListener("DOMContentLoaded", () => {
   document
     .getElementById("nextBooksPage")
     ?.addEventListener("click", () => loadBookCatalog({ append: true }));
+
+  restoreCachedBooksPage();
   initializeBooksPage();
 });
 

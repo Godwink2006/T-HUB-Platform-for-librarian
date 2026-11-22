@@ -167,6 +167,7 @@ tbody tr:hover {
   .finances-main-content,
   .books-main-content,
   .reports-main-content,
+  .librarys-report-main-content,
   .students-main-content,
   .teachers-main-content {
     margin-left: 0 !important;
@@ -174,6 +175,30 @@ tbody tr:hover {
     padding-top: 70px;
   }
 
+}
+
+@media screen and (min-width: 769px) {
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 260px;
+    height: 100vh;
+    border-radius: 0 !important;
+  }
+
+  :is(
+    .dashboard-main-content,
+    .books-main-content,
+    .students-main-content,
+    .settings-main-content,
+    .reports-main-content,
+    .librarys-report-main-content
+  ) {
+    margin-left: 260px !important;
+    width: calc(100% - 260px) !important;
+    box-sizing: border-box;
+  }
 }
 
  .menu li a,

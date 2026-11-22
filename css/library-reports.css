@@ -10,9 +10,77 @@
   min-height: 100vh;
 }
 
+.sidebar {
+  width: 260px;
+  height: 100vh;
+  overflow: auto;
+  position: fixed;
+  left: 0;
+  top: 0;
+  background: #1d4ed8;
+  color: #fff;
+  padding: 25px;
+  z-index: 1000;
+  border-radius: 0 !important;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 40px;
+}
+
+.logo img {
+  width: 55px;
+  height: 55px;
+  border-radius: 50%;
+  background: #fff;
+}
+
+.logo h2 {
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.menu {
+  list-style: none;
+}
+
+.menu li {
+  margin-bottom: 10px;
+}
+
+.menu li a {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  color: #fff;
+  text-decoration: none;
+  padding: 14px 16px;
+  transition: 0.3s;
+}
+
+.menu li a:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.menu li.active a {
+  background: #fff;
+  color: #1d4ed8;
+}
+
+.menu li a i {
+  width: 20px;
+  text-align: center;
+}
+
 .librarys-report-main-content {
-  width: 100%;
-  padding: 10px;
+  margin-left: 260px !important;
+  width: calc(100% - 260px) !important;
+  min-height: 100vh;
+  padding: 24px 30px;
+  box-sizing: border-box;
 }
 
 .topbar {
@@ -235,7 +303,10 @@ tbody tr:hover {
 /* Mobile Responsiveness */
 @media screen and (max-width: 768px) {
   .librarys-report-main-content {
+    margin-left: 0 !important;
+    width: 100% !important;
     padding: 10px;
+    padding-top: 70px;
   }
 
   .topbar {
@@ -278,6 +349,8 @@ tbody tr:hover {
     background: #ffffff;
   }
 
+  .sidebar,
+  .sidebar-overlay,
   .back-librarys-report-btn,
   .toolbar,
   .librarys-report-actions-btn,
@@ -286,8 +359,10 @@ tbody tr:hover {
   }
 
   .librarys-report-main-content {
+    margin-left: 0 !important;
     padding: 0 !important;
     max-width: 100% !important;
+    width: 100% !important;
   }
 
   .librarys-report-table-card {
@@ -313,27 +388,12 @@ body {
 }
 
 .topbar {
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: flex-start;
-  gap: 8px;
-}
-
-.topbar > button {
-  display: inline-flex;
-  align-self: flex-start;
+  display: flex;
+  justify-content: space-between;
   align-items: center;
-  justify-content: center;
-  width: auto !important;
-  min-width: 0;
-  padding: 7px 12px;
-  border: 0.5px solid rgb(219, 215, 215);
-  border-radius: 0;
-  background: #1f2937;
-  color: #ffffff;
-  font-size: 14px;
-  line-height: 1.25;
-  white-space: nowrap;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 16px;
 }
 
 .toolbar {

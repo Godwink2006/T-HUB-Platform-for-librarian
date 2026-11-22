@@ -1,94 +1,25 @@
-async function initSettingsPage() {
-  const skeletonEl = document.getElementById("settingsSkeleton");
-  const containerEl = document.getElementById("settingsContainer");
-
-  try {
-    const {
-      data: { user },
-      error: userError,
-    } = await supabaseClient.auth.getUser();
-
-    if (userError || !user) {
-      console.warn("No authenticated user found.");
-      return;
-    }
-
-    if (containerEl) {
-      const allCardsHTML = `
-        <div class="setting-card">
-          <h4>My Profile</h4>
-          <p>Update your librarian profile and sign-in details.</p>
-          <button onclick="window.location.href = 'my-profile.html'" class="manage-btn">
-            Manage Profile <i class="fa-solid fa-chevron-right"></i>
-          </button>
-        </div>
-        <div class="setting-card">
-          <h4>School Information</h4>
-          <p>View your school’s name, identity, and contact information.</p>
-          <button onclick="window.location.href = 'school-information.html'" class="manage-btn">
-            View School Information <i class="fa-solid fa-chevron-right"></i>
-          </button>
-        </div>
-        <div class="setting-card">
-          <h4>Push Notifications</h4>
-          <p id="pushNotificationStatus">Choose whether T-HUB notifications are enabled on this device.</p>
-          <button id="enablePushNotificationsBtn" type="button" class="manage-btn">
-            Enable on This Device <i class="fa-solid fa-bell"></i>
-          </button>
-        </div>
-        <div class="setting-card">
-          <h4>Log Out</h4>
-          <p>Sign out on this device and remove saved data for this site.</p>
-          <button id="clearBrowserDataBtn" type="button" class="manage-btn clear-browser-data-btn">
-            Log Out <i class="fa-solid fa-right-from-bracket"></i>
-          </button>
-        </div>
-      `;
-
-      containerEl.innerHTML = allCardsHTML;
-
-      const settingIcons = new Map([
-        ["My Profile", "fa-user"],
-        ["School Information", "fa-school"],
-        ["Push Notifications", "fa-bell"],
-        ["Log Out", "fa-right-from-bracket"],
-      ]);
-
-      containerEl.querySelectorAll(".setting-card h4").forEach((heading) => {
-        const iconName = settingIcons.get(heading.textContent.trim());
-        if (!iconName) return;
-
-        const icon = document.createElement("i");
-        icon.className = `fa-solid ${iconName}`;
-        icon.setAttribute("aria-hidden", "true");
-        heading.prepend(icon, " ");
-      });
-
-      document
-        .getElementById("clearBrowserDataBtn")
-        ?.addEventListener("click", openClearDataDialog);
-      initPushNotificationSetup();
-      document
-        .getElementById("cancelClearDataBtn")
-        ?.addEventListener("click", closeClearDataDialog);
-      document
-        .getElementById("confirmClearDataBtn")
-        ?.addEventListener("click", clearCurrentBrowserData);
-      document.getElementById("clearDataDialog")?.addEventListener("click", (event) => {
-        if (event.target.id === "clearDataDialog") closeClearDataDialog();
-      });
-      document.addEventListener("keydown", handleClearDataDialogKeydown);
-
-    }
-  } catch (err) {
-    console.error("Initialization error:", err);
-  } finally {
-    if (skeletonEl) skeletonEl.style.display = "none";
-    if (containerEl) containerEl.style.display = "grid";
-  }
+function initSettingsPage() {
+  document
+    .getElementById("clearBrowserDataBtn")
+    ?.addEventListener("click", openClearDataDialog);
+  initPushNotificationSetup();
+  document
+    .getElementById("cancelClearDataBtn")
+    ?.addEventListener("click", closeClearDataDialog);
+  document
+    .getElementById("confirmClearDataBtn")
+    ?.addEventListener("click", clearCurrentBrowserData);
+  document.getElementById("clearDataDialog")?.addEventListener("click", (event) => {
+    if (event.target.id === "clearDataDialog") closeClearDataDialog();
+  });
+  document.addEventListener("keydown", handleClearDataDialogKeydown);
 }
 
-document.addEventListener("DOMContentLoaded", initSettingsPage);
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initSettingsPage);
+} else {
+  initSettingsPage();
+}
 
 async function initPushNotificationSetup() {
   const button = document.getElementById("enablePushNotificationsBtn");
@@ -276,6 +207,12 @@ async function clearCurrentBrowserData() {
   confirmButton.disabled = true;
   confirmButton.textContent = "Logging out and clearing data…";
   if (cancelButton) cancelButton.disabled = true;
+
+  try {
+    window.libraryPageCache?.clearAll();
+  } catch (error) {
+    console.warn("Could not clear library page cache:", error);
+  }
 
   try {
     if (window.supabaseClient?.auth) {
