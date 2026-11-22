@@ -292,9 +292,7 @@ body {
   height: 100%;
   object-fit: cover;
 }
-
-@media (max-width: 768px) {
-  .form-section,
+ .form-section,
   .form-section h3,
   .form-group input,
   .form-group select,
@@ -306,6 +304,47 @@ body {
   .back-my-profiles-btn,
   .avatar-edit-container,
   .profile-information-notice {
-    border-radius: 10px !important;
+    border-radius: 20px !important;
+  }
+
+@media (min-width: 1200px) {
+  .my-profiles-page {
+    width: min(100%, 1560px);
+    margin: 0 auto;
+    padding: 32px clamp(30px, 2.4vw, 48px);
+  }
+
+  .page-header h2 {
+    font-size: clamp(30px, 2.2vw, 38px);
+  }
+
+  .my-profiles-form {
+    gap: 24px;
+  }
+
+  .form-section {
+    padding: 30px;
+  }
+
+  .avatar-upload-group {
+    align-items: flex-start;
+  }
+
+  .avatar-edit-container {
+    width: fit-content;
+    max-width: 100%;
+    min-height: 0;
+    padding: 16px;
+  }
+
+  .avatar-edit-container #profileAvatar {
+    width: 120px !important;
+    height: 120px !important;
+    margin: 0 !important;
+  }
+
+  .form-grid {
+    grid-template-columns: repeat(3, minmax(220px, 1fr));
+    gap: 22px;
   }
 }

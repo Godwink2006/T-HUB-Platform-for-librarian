@@ -1,4 +1,3 @@
-@media (max-width: 768px) {
   .form-section,
   .form-section h3,
   .school-logo-preview,
@@ -25,7 +24,6 @@
   .avatar-edit-container {
     border-radius: 10px;
   }
-}
 
 * {
   margin: 0;

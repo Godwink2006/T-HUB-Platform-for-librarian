@@ -23,6 +23,13 @@ async function initSettingsPage() {
           </button>
         </div>
         <div class="setting-card">
+          <h4>School Information</h4>
+          <p>View your school’s name, identity, and contact information.</p>
+          <button onclick="window.location.href = 'school-information.html'" class="manage-btn">
+            View School Information <i class="fa-solid fa-chevron-right"></i>
+          </button>
+        </div>
+        <div class="setting-card">
           <h4>Push Notifications</h4>
           <p id="pushNotificationStatus">Choose whether T-HUB notifications are enabled on this device.</p>
           <button id="enablePushNotificationsBtn" type="button" class="manage-btn">
@@ -42,6 +49,7 @@ async function initSettingsPage() {
 
       const settingIcons = new Map([
         ["My Profile", "fa-user"],
+        ["School Information", "fa-school"],
         ["Push Notifications", "fa-bell"],
         ["Log Out", "fa-right-from-bracket"],
       ]);

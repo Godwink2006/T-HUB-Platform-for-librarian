@@ -193,7 +193,7 @@ body {
 
 .library-books-pagination button {
   border: 0;
-  border-radius: 8px;
+  border-radius: 20px;
   padding: 11px 24px;
   background: #2563eb;
   color: #fff;
@@ -235,7 +235,7 @@ body {
   margin-top: 10px;
   padding: 8px 14px;
   border: 0;
-  border-radius: 7px;
+  border-radius: 20px;
   background: #2563eb;
   color: #fff;
   font: inherit;
@@ -317,7 +317,7 @@ tr {
   width: min(510px, 100%);
   padding: 22px;
   border: 1px solid #e2e8f0;
-  border-radius: 14px;
+  border-radius: 20px;
   background: #fff;
   box-shadow: 0 24px 60px rgb(15 23 42 / 22%);
 }
@@ -389,7 +389,7 @@ tr {
   min-height: 42px;
   padding: 0 16px;
   border: 1px solid #cbd5e1;
-  border-radius: 8px;
+  border-radius: 20px;
   background: #fff;
   color: #334155;
   font: inherit;
@@ -909,6 +909,17 @@ tr {
   color: #651616;
 }
 
+  .book-modal-content,
+  .view-book-modal-content,
+  .edit-book-modal-content,
+  .addBook-modal-content,
+  .editBook-modal-content {
+    width: calc(100vw - 20px);
+    height: auto;
+    max-height: calc(100dvh - 24px);
+    border-radius: 20px;
+  }
+
 @media (max-width: 768px) {
   .books-main-content {
     min-width: 0;
@@ -959,17 +970,6 @@ tr {
   .form-grid,
   .details-grid {
     grid-template-columns: 1fr;
-  }
-
-  .book-modal-content,
-  .view-book-modal-content,
-  .edit-book-modal-content,
-  .addBook-modal-content,
-  .editBook-modal-content {
-    width: calc(100vw - 20px);
-    height: auto;
-    max-height: calc(100dvh - 24px);
-    border-radius: 10px;
   }
 
   .modal-book,
@@ -1032,12 +1032,6 @@ tr {
     flex-wrap: wrap;
     gap: 8px;
   }
-
-  .books-table-card {
-    width: 100%;
-    border-radius: 10px;
-  }
-
   table {
     min-width: 760px;
   }
@@ -1049,6 +1043,22 @@ tr {
   .book-modal-content table {
     min-width: 0;
   }
+
+  .books-main-content th,
+  .books-main-content td,
+  .view-book-modal-content th,
+  .view-book-modal-content td {
+    padding: 10px;
+    font-size: 0.82rem;
+  }
+
+}
+
+  .books-table-card {
+    width: 100%;
+    border-radius: 20px;
+  }
+
 
   .books-main-content button,
   .books-main-content input,
@@ -1065,7 +1075,7 @@ tr {
   .books-main-content .books-status-inactive,
   .books-status-inactive,
   .books-status-active {
-    border-radius: 10px;
+    border-radius: 20px;
   }
 
   .book-modal-content button,
@@ -1097,25 +1107,15 @@ tr {
   .editBook-modal-content,
   .status-borrowed,
   .status-returned {
-    border-radius: 10px;
-  }
-
-  .books-main-content th,
-  .books-main-content td,
-  .view-book-modal-content th,
-  .view-book-modal-content td {
-    padding: 10px;
-    font-size: 0.82rem;
+    border-radius: 20px;
   }
 
   .books-actions-btn {
     width: 34px;
     height: 34px;
     margin-right: 3px;
-    border-radius: 8px;
+    border-radius: 20px;
   }
-
-}
 
 @media (max-width: 420px) {
   .books-main-content {
@@ -1214,17 +1214,6 @@ tr {
   z-index: 1001;
 }
 
-@media (max-width: 768px) {
-  .modal-book,
-  .view-book-modal,
-  .edit-modal-book,
-  .addBook-modal,
-  .editBook-modal {
-    padding: 12px;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-  }
-
   .book-modal-content,
   .view-book-modal-content,
   .edit-book-modal-content,
@@ -1237,8 +1226,19 @@ tr {
     height: auto;
     max-height: min(650px, calc(100dvh - 24px));
     overflow: hidden;
-    border-radius: 10px;
+    border-radius: 20px;
     font-family: "Poppins", sans-serif;
+  }
+
+@media (max-width: 768px) {
+  .modal-book,
+  .view-book-modal,
+  .edit-modal-book,
+  .addBook-modal,
+  .editBook-modal {
+    padding: 12px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   .book-modal-body,
@@ -1265,6 +1265,8 @@ tr {
     flex: 0 0 auto;
   }
 
+}
+
   .view-book-modal-header button {
     display: inline-flex;
     align-items: center;
@@ -1274,7 +1276,7 @@ tr {
     height: 36px;
     padding: 0;
     border: 0;
-    border-radius: 8px;
+    border-radius: 20px;
     background: #1f2937;
     color: #f9fafb;
     font: inherit;
@@ -1282,4 +1284,3 @@ tr {
     line-height: 1;
     cursor: pointer;
   }
-}

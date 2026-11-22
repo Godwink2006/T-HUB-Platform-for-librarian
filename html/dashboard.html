@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" class="auth-welcome-open">
+<html lang="en">
   <head>
     <meta
       http-equiv="Cache-Control"
@@ -105,15 +105,34 @@
             <h1>Library Dashboard</h1>
             <p>Manage your catalog, lending desk, and library activity.</p>
           </div>
-          <button type="button" class="dashboard-theme-toggle app-theme-toggle" id="dashboardThemeToggle" aria-label="Switch to dark mode" aria-pressed="false" title="Switch to dark mode">
-            <i class="fa-solid fa-moon" aria-hidden="true"></i><span>Dark mode</span>
-          </button>
+          <div class="dashboard-topbar-actions">
+            <button type="button" class="dashboard-theme-toggle app-theme-toggle" id="dashboardThemeToggle" aria-label="Switch to dark mode" aria-pressed="false" title="Switch to dark mode">
+              <i class="fa-solid fa-moon" aria-hidden="true"></i><span>Dark mode</span>
+            </button>
+            <div class="dashboard-profile-photo">
+              <img id="dashboardLibrarianAvatar" src="https://cdn-icons-png.flaticon.com/512/149/149071.png" alt="Librarian profile photo" />
+            </div>
+          </div>
         </header>
 
         <section class="dashboard-cards">
-          <a class="dashboard-card" href="books.html"><h4><i class="fa-solid fa-book-open" aria-hidden="true"></i> Browse Catalog</h4><p>Search the collection and review book availability.</p><span>Browse books <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></span></a>
-          <a class="dashboard-card" href="library.html"><h4><i class="fa-solid fa-arrow-right-arrow-left" aria-hidden="true"></i> Inventory &amp; Circulation</h4><p>Manage titles, issue books, record returns, and review current loans.</p><span>Manage library <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></span></a>
-          <a class="dashboard-card" href="library-reports.html"><h4><i class="fa-solid fa-chart-column" aria-hidden="true"></i> Library Reports</h4><p>Review inventory, availability, overdue books, and borrowing activity.</p><span>View reports <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></span></a>
+          <div class="dashboard-card" id="library-users-card">
+            <h4><i class="fa-solid fa-users" aria-hidden="true"></i> Library Users</h4>
+            <h2 id="libraryUsersCount" aria-live="polite">—</h2>
+            <p id="libraryUsersSubtext">Loading user count…</p>
+          </div>
+          <a class="dashboard-card" href="library.html"><h4><i class="fa-solid fa-book-open" aria-hidden="true"></i> Book Titles</h4><h2 id="dashboardBookTitlesCount" aria-live="polite">—</h2><p id="dashboardBookTitlesSubtext">Loading catalog count…</p></a>
+          <a class="dashboard-card" href="library.html"><h4><i class="fa-solid fa-arrow-right-arrow-left" aria-hidden="true"></i> Currently Borrowed</h4><h2 id="dashboardBorrowedCount" aria-live="polite">—</h2><p id="dashboardBorrowedSubtext">Loading borrowing count…</p></a>
+          <a class="dashboard-card" href="library-reports.html"><h4><i class="fa-solid fa-rotate-left" aria-hidden="true"></i> Returned</h4><h2 id="dashboardReturnedCount" aria-live="polite">—</h2><p id="dashboardReturnedSubtext">Loading return count…</p></a>
+        </section>
+
+        <section class="announcement-cards" aria-labelledby="dashboardAnnouncementsTitle">
+          <div class="card-header">
+            <h3 id="dashboardAnnouncementsTitle"><i class="fa-solid fa-bullhorn" aria-hidden="true"></i> Announcements</h3>
+          </div>
+          <div class="announcement-preview" id="announcementPreviewContainer" aria-live="polite">
+            <div class="announcement-item"><p>Loading announcements…</p></div>
+          </div>
         </section>
       </main>
     </div>
@@ -124,6 +143,7 @@
     <script src="/js/supabase.js"></script>
     <script src="/js/spa-router.js"></script>
     <script src="/js/utils.js"></script>
+    <script src="/js/dashboard.js"></script>
       <script src="/js/app-icons.js"></script>
   </body>
 </html>

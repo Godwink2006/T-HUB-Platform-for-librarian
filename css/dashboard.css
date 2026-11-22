@@ -69,7 +69,7 @@ body.dashboard-auth-error-open .dashboard-container {
 .dashboard-auth-loading__logo {
   width: 92px;
   height: 92px;
-  border-radius: 22px;
+  border-radius: 20px;
 }
 
 .dashboard-auth-loading__content h1 {
@@ -118,6 +118,7 @@ body.dashboard-auth-error-open .dashboard-auth-loading__content {
 #enrollment-dashboard-card,
 #attendance-dashboard-card {
   display: none;
+  border-radius: 20px;
 }
 
 .empty-state {
@@ -152,6 +153,7 @@ body.dashboard-auth-error-open .dashboard-auth-loading__content {
   background: #1d4ed8;
   color: #fff;
   padding: 25px;
+  border-radius: 20px;
 }
 
 .logo {
@@ -196,11 +198,13 @@ body.dashboard-auth-error-open .dashboard-auth-loading__content {
 
 .menu li a:hover {
   background: rgba(255, 255, 255, 0.15);
+  border-radius: 20px;
 }
 
 .menu li.active a {
   background: #fff;
   color: #1d4ed8;
+  border-radius: 20px;
 }
 
 .menu li a i {
@@ -213,6 +217,7 @@ body.dashboard-auth-error-open .dashboard-auth-loading__content {
   width: calc(100% - 260px);
   min-height: 100vh;
   padding: 10px;
+  border-radius: 20px;
 }
 
 .topbar {
@@ -251,10 +256,36 @@ body.dashboard-auth-error-open .dashboard-auth-loading__content {
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
+  border-radius: 20px;
 }
 
 .dashboard-theme-toggle i {
   font-size: 15px;
+}
+
+.dashboard-topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.dashboard-profile-photo {
+  display: block;
+  width: 48px;
+  height: 48px;
+  flex: 0 0 48px;
+  overflow: hidden;
+  border: 2px solid #e2e8f0;
+  border-radius: 50%;
+  background: #fff;
+}
+
+.dashboard-profile-photo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  object-fit: cover;
 }
 
 .top-right i {
@@ -276,6 +307,7 @@ body.dashboard-auth-error-open .dashboard-auth-loading__content {
   background: #ffff;
   padding: 20px;
   border: 0.5px solid rgb(219, 215, 215);
+  border-radius: 20px;
 }
 
 .dashboard-card[href] {
@@ -283,6 +315,7 @@ body.dashboard-auth-error-open .dashboard-auth-loading__content {
   color: inherit;
   text-decoration: none;
   transition: transform 160ms ease, box-shadow 160ms ease;
+
 }
 
 .dashboard-card[href]:hover,
@@ -309,6 +342,7 @@ body.dashboard-auth-error-open .dashboard-auth-loading__content {
   padding: 20px;
   margin-bottom: 24px;
   box-shadow: 0 0 15px 1px rgba(0, 0, 0, 0.03);
+  border-radius: 20px;
 }
 
 .card-header {
@@ -330,6 +364,7 @@ body.dashboard-auth-error-open .dashboard-auth-loading__content {
   gap: 14px;
   overflow-y: auto;
   height: 300px;
+  border-radius: 20px;
 }
 
 .dashboard-inline-error {
@@ -412,6 +447,39 @@ body.dashboard-auth-error-open .dashboard-auth-loading__content {
 .dashboard-announcement {
   background: #fff;
   border: 0.5px solid rgb(219, 215, 215);
+}
+
+.dashboard-announcement-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.dashboard-announcement time {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.announcement-status {
+  flex: 0 0 auto;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  color: #334155;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.announcement-status-important {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.announcement-status-urgent {
+  background: #fee2e2;
+  color: #991b1b;
 }
 
 .dashboard-announcement h4 {
@@ -958,7 +1026,7 @@ body.dashboard-auth-error-open .dashboard-auth-loading__content {
   body.dashboard-auth-error-open .dashboard-auth-loading__content,
 .dashboard-auth-loading__retry,
 .dashboard-theme-toggle {
-    border-radius: 10px;
+    border-radius: 20px;
   }
 
   .date-modal-content,
@@ -990,6 +1058,11 @@ body.app-dark .menu li.active a {
 
 body.app-dark .menu li a:hover {
   background: rgba(255, 255, 255, 0.1);
+}
+
+body.app-dark .dashboard-profile-photo {
+  border-color: #333;
+  background: #111;
 }
 
 body.app-dark .topbar h1,

@@ -121,7 +121,7 @@
   width: 34px;
   height: 34px;
   place-items: center;
-  border-radius: 8px;
+  border-radius: 20px;
   color: #b91c1c;
 }
 
@@ -134,14 +134,15 @@
   cursor: wait;
 }
 
-@media screen and (max-width: 768px) {
   .notifications-card-list,
   .notif-tab.active,
   .notif-tab,
   .btn-primary-action,
   .back-my-profiles-btn {
-    border-radius: 10px;
+    border-radius: 20px;
   }
+
+@media screen and (max-width: 768px) {
 
   .btn-primary-action {
     font-size: 8px;

@@ -262,14 +262,14 @@ body.settings-modal-open {
   opacity: 0.7;
 }
 
+  .clear-data-card {
+    padding: 22px;
+    border-radius: 20px;
+  }
+
 @media (max-width: 480px) {
   .clear-data-modal {
     padding: 12px;
-  }
-
-  .clear-data-card {
-    padding: 22px;
-    border-radius: 12px;
   }
 
   .clear-data-actions {
@@ -281,14 +281,14 @@ body.settings-modal-open {
   }
 }
 
+  .clear-data-actions button,
+  .clear-data-card {
+    border-radius: 20px;
+  }
+
 @media screen and (max-width: 768px) {
   .settings-container {
     flex-direction: column;
-  }
-
-  .clear-data-actions button,
-  .clear-data-card {
-    border-radius: 10px;
   }
 
   .settings-main-content {
@@ -313,22 +313,6 @@ body.settings-modal-open {
     font-size: 14px;
   }
 
-  .setting-card .manage-btn,
-  .setting-card,
-  .menu li.active a {
-    border-radius: 10px;
-  }
-
-  .menu li a:hover {
-    border-radius: 10px;
-  }
-
-  .setting-cards {
-    grid-template-columns: 1fr;
-    gap: 15px;
-    border-radius: 10px;
-  }
-
   .button-group {
     grid-template-columns: 1fr;
     gap: 10px;
@@ -349,6 +333,22 @@ body.settings-modal-open {
     border-radius: 0;
   }
 }
+
+  .setting-card .manage-btn,
+  .setting-card,
+  .menu li.active a {
+    border-radius: 20px;
+  }
+
+  .menu li a:hover {
+    border-radius: 20px;
+  }
+
+  .setting-cards {
+    grid-template-columns: 1fr;
+    gap: 15px;
+    border-radius: 20px;
+  }
 
 .setting-card.skeleton {
   pointer-events: none;

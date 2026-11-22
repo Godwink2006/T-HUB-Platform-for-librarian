@@ -42,7 +42,7 @@
   background: #ffffff;
   color: #334155;
   border: 0.5px solid #cbd5e1;
-  border-radius: 8px;
+  border-radius: 20px;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
@@ -67,7 +67,7 @@
 .toolbar input {
   height: 42px;
   border: 0.5px solid #cbd5e1;
-  border-radius: 8px;
+  border-radius: 20px;
   padding: 0 14px;
   outline: none;
   background: #ffffff;
@@ -85,7 +85,7 @@
 
 .librarys-report-table-card {
   background: #ffffff;
-  border-radius: 12px;
+  border-radius: 20px;
   border: 0.5px solid #e2e8f0;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   overflow-x: auto;
@@ -139,7 +139,7 @@ tbody tr:hover {
   padding: 7px 14px;
   font-size: 13px;
   font-weight: 500;
-  border-radius: 6px;
+  border-radius: 20px;
   cursor: pointer;
   border: none;
   transition: all 0.2s ease;
@@ -228,7 +228,7 @@ tbody tr:hover {
   color: #64748b;
   background: #e2e8f0;
   padding: 3px 10px;
-  border-radius: 12px;
+  border-radius: 20px;
   font-weight: 500;
 }
 
@@ -363,57 +363,5 @@ table {
 @media print {
   body {
     background: #ffffff;
-  }
-}
-
-/* Rounded UI surfaces on phones; square UI on larger screens. */
-@media screen and (min-width: 769px) {
-  body *:not(img):not(svg):not(canvas) {
-    border-radius: 0 !important;
-  }
-}
-
-@media screen and (max-width: 768px) {
-  body *:not(img):not(svg):not(canvas) {
-    border-radius: 8px !important;
-  }
-
-  body table:not(img):not(svg):not(canvas),
-  body table *:not(img):not(svg):not(canvas) {
-    border-radius: 0 !important;
-  }
-}
-/* Ensure class-based card and badge rules follow the same responsive radius. */
-@media screen and (min-width: 769px) {
-  body [class]:not(img):not(svg):not(canvas),
-  body *:not(img):not(svg):not(canvas) {
-    border-radius: 0 !important;
-  }
-}
-
-@media screen and (max-width: 768px) {
-  body [class]:not(img):not(svg):not(canvas),
-  body *:not(img):not(svg):not(canvas) {
-    border-radius: 8px !important;
-  }
-
-  body table:not(img):not(svg):not(canvas),
-  body table [class]:not(img):not(svg):not(canvas),
-  body table *:not(img):not(svg):not(canvas) {
-    border-radius: 0 !important;
-  }
-}
-@media screen and (max-width: 768px) {
-  body [class*="-report-table-card"]:not(img):not(svg):not(canvas),
-  body [class*="-record-table-card"]:not(img):not(svg):not(canvas) {
-    border-radius: 0 !important;
-  }
-}
-@media screen and (max-width: 768px) {
-  body table button:not(img):not(svg):not(canvas):not(table):not(thead):not(tbody),
-  body table [class*="btn"]:not(img):not(svg):not(canvas),
-  body table [class*="badge"]:not(img):not(svg):not(canvas),
-  body table [class*="status"]:not(img):not(svg):not(canvas) {
-    border-radius: 8px !important;
   }
 }

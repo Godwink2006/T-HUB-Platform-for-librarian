@@ -16,8 +16,12 @@ if (!appDiagnosticsEnabled) {
 }
 
 
-const SUPABASE_READ_TTL = 20_000;
+const SUPABASE_READ_TTL = 24 * 60 * 60 * 1000;
 const SUPABASE_READ_CACHE_LIMIT = 120;
+const SUPABASE_READ_STORAGE_PREFIX = "tHubSupabaseReadCache:v1:";
+const SUPABASE_READ_STORAGE_INVALIDATION_KEY = "tHubSupabaseReadCacheInvalidated";
+const SUPABASE_READ_STORAGE_LIMIT_BYTES = 4 * 1024 * 1024;
+const SUPABASE_READ_STORAGE_ENTRY_LIMIT_BYTES = 1536 * 1024;
 const supabaseReadCache = new Map();
 const supabaseReadInflight = new Map();
 const defaultSupabaseFetch = window.fetch.bind(window);
@@ -25,18 +29,163 @@ let supabaseCacheGeneration = 0;
 
 function supabaseReadCacheKey(request) {
     const varyHeaders = [
-        "authorization",
-        "apikey",
         "accept-profile",
         "content-profile",
         "range",
         "prefer",
     ];
+    const authorization = request.headers.get("authorization") || "";
+    const token = authorization.replace(/^Bearer\s+/i, "");
+    let userScope = "anonymous";
+    try {
+        const payload = token.split(".")[1];
+        if (payload) {
+            const normalizedPayload = payload.replace(/-/g, "+").replace(/_/g, "/");
+            const claims = JSON.parse(atob(normalizedPayload));
+            userScope = claims.sub || claims.role || userScope;
+        }
+    } catch {
+        // Requests without a readable user claim remain isolated as anonymous.
+    }
     const varyingValues = varyHeaders
         .map((name) => `${name}:${request.headers.get(name) || ""}`)
         .join("\n");
-    return `${request.url}\n${varyingValues}`;
+    return `${userScope}\n${request.url}\n${varyingValues}`;
 }
+
+function persistentSupabaseReadCacheKey(cacheKey) {
+    let hash = 2166136261;
+    for (let index = 0; index < cacheKey.length; index += 1) {
+        hash ^= cacheKey.charCodeAt(index);
+        hash = Math.imul(hash, 16777619);
+    }
+    return `${SUPABASE_READ_STORAGE_PREFIX}${(hash >>> 0).toString(36)}`;
+}
+
+function readPersistentSupabaseResponse(cacheKey) {
+    try {
+        const storageKey = persistentSupabaseReadCacheKey(cacheKey);
+        const serializedEntry = localStorage.getItem(storageKey);
+        if (!serializedEntry) return null;
+
+        const entry = JSON.parse(serializedEntry);
+        if (
+            entry.cacheKey !== cacheKey ||
+            !Number.isFinite(entry.expiresAt) ||
+            entry.expiresAt <= Date.now()
+        ) {
+            localStorage.removeItem(storageKey);
+            return null;
+        }
+
+        return {
+            response: new Response(entry.body || null, {
+                status: entry.status,
+                statusText: entry.statusText || "",
+                headers: entry.headers || [],
+            }),
+            expiresAt: entry.expiresAt,
+        };
+    } catch {
+        return null;
+    }
+}
+
+async function persistSupabaseReadResponse(cacheKey, response, expiresAt) {
+    try {
+        const entry = {
+            cacheKey,
+            status: response.status,
+            statusText: response.statusText,
+            headers: Array.from(response.headers.entries()),
+            body: await response.clone().text(),
+            expiresAt,
+        };
+        const serializedEntry = JSON.stringify(entry);
+        if (serializedEntry.length * 2 > SUPABASE_READ_STORAGE_ENTRY_LIMIT_BYTES) return;
+
+        localStorage.setItem(
+            persistentSupabaseReadCacheKey(cacheKey),
+            serializedEntry,
+        );
+        trimPersistentSupabaseReadCache();
+    } catch {
+        // Keep the in-memory cache working when browser storage is unavailable/full.
+    }
+}
+
+function trimPersistentSupabaseReadCache() {
+    try {
+        const now = Date.now();
+        const entries = [];
+        let totalBytes = 0;
+
+        for (let index = 0; index < localStorage.length; index += 1) {
+            const key = localStorage.key(index);
+            if (!key?.startsWith(SUPABASE_READ_STORAGE_PREFIX)) continue;
+
+            const value = localStorage.getItem(key) || "";
+            let expiresAt = 0;
+            try {
+                expiresAt = JSON.parse(value).expiresAt || 0;
+            } catch {
+                // Corrupted entries are removed below.
+            }
+
+            if (expiresAt <= now) {
+                localStorage.removeItem(key);
+                index -= 1;
+                continue;
+            }
+
+            const sizeBytes = (key.length + value.length) * 2;
+            totalBytes += sizeBytes;
+            entries.push({ key, sizeBytes, expiresAt });
+        }
+
+        entries.sort((left, right) => left.expiresAt - right.expiresAt);
+        while (totalBytes > SUPABASE_READ_STORAGE_LIMIT_BYTES && entries.length) {
+            const oldestEntry = entries.shift();
+            localStorage.removeItem(oldestEntry.key);
+            totalBytes -= oldestEntry.sizeBytes;
+        }
+    } catch {
+        // Storage cleanup is best effort; query results still work in memory.
+    }
+}
+
+function clearPersistentSupabaseReadCache() {
+    try {
+        const keysToRemove = [];
+        for (let index = 0; index < localStorage.length; index += 1) {
+            const key = localStorage.key(index);
+            if (key?.startsWith(SUPABASE_READ_STORAGE_PREFIX)) keysToRemove.push(key);
+        }
+        keysToRemove.forEach((key) => localStorage.removeItem(key));
+        localStorage.setItem(SUPABASE_READ_STORAGE_INVALIDATION_KEY, String(Date.now()));
+    } catch {
+        // Storage may be disabled by browser policy.
+    }
+}
+
+window.clearSupabaseReadCache = function () {
+    supabaseCacheGeneration += 1;
+    supabaseReadCache.clear();
+    supabaseReadInflight.clear();
+    clearPersistentSupabaseReadCache();
+};
+
+window.addEventListener("storage", (event) => {
+    if (
+        event.key === null ||
+        event.key === SUPABASE_READ_STORAGE_INVALIDATION_KEY ||
+        event.key?.startsWith(SUPABASE_READ_STORAGE_PREFIX)
+    ) {
+        supabaseReadCache.clear();
+        supabaseReadInflight.clear();
+        supabaseCacheGeneration += 1;
+    }
+});
 
 function trimSupabaseReadCache() {
     const now = Date.now();
@@ -64,9 +213,7 @@ async function cachedSupabaseFetch(input, init) {
             request.method !== "GET" &&
             response.ok
         ) {
-            supabaseCacheGeneration += 1;
-            supabaseReadCache.clear();
-            supabaseReadInflight.clear();
+            window.clearSupabaseReadCache();
         }
         return response;
     }
@@ -78,17 +225,29 @@ async function cachedSupabaseFetch(input, init) {
         return cached.response.clone();
     }
 
+    const persistentEntry = readPersistentSupabaseResponse(key);
+    if (persistentEntry) {
+        supabaseReadCache.set(key, {
+            response: persistentEntry.response.clone(),
+            expiresAt: persistentEntry.expiresAt,
+        });
+        trimSupabaseReadCache();
+        return persistentEntry.response;
+    }
+
     let pending = supabaseReadInflight.get(key);
     if (!pending) {
         const generation = supabaseCacheGeneration;
         pending = defaultSupabaseFetch(request)
-            .then((response) => {
+            .then(async (response) => {
                 if (response.ok && generation === supabaseCacheGeneration) {
+                    const expiresAt = Date.now() + SUPABASE_READ_TTL;
                     supabaseReadCache.set(key, {
                         response: response.clone(),
-                        expiresAt: Date.now() + SUPABASE_READ_TTL,
+                        expiresAt,
                     });
                     trimSupabaseReadCache();
+                    await persistSupabaseReadResponse(key, response, expiresAt);
                 }
                 return response;
             })
@@ -111,8 +270,9 @@ const supabaseClient = window.supabase.createClient(
 
 window.supabaseClient = supabaseClient;
 
-supabaseClient.auth.onAuthStateChange(() => {
+supabaseClient.auth.onAuthStateChange((event) => {
     supabaseCacheGeneration += 1;
     supabaseReadCache.clear();
     supabaseReadInflight.clear();
+    if (event === "SIGNED_OUT") window.clearSupabaseReadCache();
 });

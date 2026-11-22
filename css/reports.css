@@ -184,11 +184,6 @@ body {
     gap: 14px;
   }
 
-  .report-card {
-    padding: 18px;
-    border-radius: 10px;
-  }
-
   .report-card h4 {
     font-size: 18px;
   }
@@ -197,12 +192,17 @@ body {
     padding: 11px 16px;
     font-size: 14px;
   }
+}
 
-  .menu li a,
+  .report-card {
+    padding: 18px;
+    border-radius: 20px;
+  }
+
+    .menu li a,
 .report-card,
 .manage-btn{
-  border-radius: 10px;
-}
+  border-radius: 20px;
 }
 
 /* Shared presentation for report pages. */
@@ -273,10 +273,11 @@ table {
   }
 }
 
-@media screen and (max-width: 768px) {
   body *:not(img):not(svg):not(canvas) {
-    border-radius: 8px !important;
+    border-radius: 20px !important;
   }
+
+@media screen and (max-width: 768px) {
 
   body table:not(img):not(svg):not(canvas),
   body table *:not(img):not(svg):not(canvas) {
@@ -291,11 +292,12 @@ table {
   }
 }
 
-@media screen and (max-width: 768px) {
   body [class]:not(img):not(svg):not(canvas),
   body *:not(img):not(svg):not(canvas) {
-    border-radius: 8px !important;
+    border-radius: 20px !important;
   }
+
+@media screen and (max-width: 768px) {
 
   body table:not(img):not(svg):not(canvas),
   body table [class]:not(img):not(svg):not(canvas),
@@ -309,11 +311,9 @@ table {
     border-radius: 0 !important;
   }
 }
-@media screen and (max-width: 768px) {
   body table button:not(img):not(svg):not(canvas):not(table):not(thead):not(tbody),
   body table [class*="btn"]:not(img):not(svg):not(canvas),
   body table [class*="badge"]:not(img):not(svg):not(canvas),
   body table [class*="status"]:not(img):not(svg):not(canvas) {
-    border-radius: 8px !important;
+    border-radius: 20px !important;
   }
-}
