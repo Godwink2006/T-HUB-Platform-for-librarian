@@ -278,6 +278,19 @@ body.dashboard-auth-error-open .dashboard-auth-loading__content {
   border: 0.5px solid rgb(219, 215, 215);
 }
 
+.dashboard-card[href] {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+  transition: transform 160ms ease, box-shadow 160ms ease;
+}
+
+.dashboard-card[href]:hover,
+.dashboard-card[href]:focus-visible {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgb(15 23 42 / 10%);
+}
+
 .dashboard-card h4 {
   color: #6b7280;
   font-size: 25px;

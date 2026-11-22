@@ -13,134 +13,15 @@ async function initSettingsPage() {
       return;
     }
 
-    const { data: profile, error: profileError } = await supabaseClient
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .single();
-
-    if (profileError) {
-      console.error("Error fetching user role:", profileError);
-    }
-
-    const userRole = profile?.role;
-    const isAdmin = userRole === "admin";
-
     if (containerEl) {
       const allCardsHTML = `
-        ${
-          isAdmin
-            ? `
-        <div id="nav-semesters" class="setting-card">
-          <h4>Semester</h4>
-          <p>Create and manage Semesters.</p>
-          <button onclick="window.location.href = 'semester.html'" class="manage-btn">
-            Manage Semesters <i class="fa-solid fa-chevron-right"></i>
-          </button>
-        </div>
-        <div id="nav-academic-years" class="setting-card">
-          <h4>Academic Year</h4>
-          <p>Create and manage Academic Year.</p>
-          <button onclick="window.location.href = 'academic-year.html'" class="manage-btn">
-            Manage Academic Year <i class="fa-solid fa-chevron-right"></i>
-          </button>
-        </div>
-        <div id="nav-system-users" class="setting-card">
-          <h4>System Users</h4>
-          <p>Manage and create users.</p>
-          <button onclick="window.location.href = 'system-users.html'" class="manage-btn">
-            Manage Users <i class="fa-solid fa-chevron-right"></i>
-          </button>
-        </div>
-        `
-            : ""
-        }
-
         <div class="setting-card">
           <h4>My Profile</h4>
-          <p>Manage profile.</p>
+          <p>Update your librarian profile and sign-in details.</p>
           <button onclick="window.location.href = 'my-profile.html'" class="manage-btn">
             Manage Profile <i class="fa-solid fa-chevron-right"></i>
           </button>
         </div>
-
-        ${
-          isAdmin
-            ? `
-
-             <div class="setting-card">
-          <h4>Subjects</h4>
-          <p>Create and manage all school subjects.</p>
-          <button onclick="window.location.href = 'subjects.html'" class="manage-btn">
-            Manage Subjects <i class="fa-solid fa-chevron-right"></i>
-          </button>
-        </div>
-
-         <div class="setting-card">
-          <h4>Fee Structures</h4>
-          <p>Create and manage fee structures.</p>
-          <button onclick="window.location.href = 'structures.html'" class="manage-btn">
-            Manage Structures <i class="fa-solid fa-chevron-right"></i>
-          </button>
-        </div>
-
-        <div class="setting-card">
-          <h4>Classes</h4>
-          <p>Create and manage all school classes.</p>
-          <button onclick="window.location.href = 'classes.html'" class="manage-btn">
-            Manage Classes <i class="fa-solid fa-chevron-right"></i>
-          </button>
-        </div>
-
-        <div id="nav-departments" class="setting-card">
-          <h4>Department</h4>
-          <p>Manage and create departments.</p>
-          <button onclick="window.location.href = 'department.html'" class="manage-btn">
-            Manage Departments <i class="fa-solid fa-chevron-right"></i>
-          </button>
-        </div>
-
-         <div id="nav-periods" class="setting-card">
-          <h4>Periods</h4>
-          <p>Manage and create periods.</p>
-          <button onclick="window.location.href = 'periods.html'" class="manage-btn">
-            Manage Periods <i class="fa-solid fa-chevron-right"></i>
-          </button>
-        </div>
-
-           <div id="nav-assessments" class="setting-card">
-          <h4>Assessment</h4>
-          <p>Create and manage assessments.</p>
-          <button onclick="window.location.href = 'assessments.html'" class="manage-btn">
-            Manage Assessments <i class="fa-solid fa-chevron-right"></i>
-          </button>
-        </div>
-        `
-            : ""
-        }
-
-        <div class="setting-card">
-          <h4>School Information</h4>
-          <p>Manage or view school information.</p>
-          <button onclick="window.location.href = 'school-information.html'" class="manage-btn">
-            View School Information <i class="fa-solid fa-chevron-right"></i>
-          </button>
-        </div>
-
-        ${
-          isAdmin
-            ? `
-        <div id="nav-audit-logs" class="setting-card">
-          <h4>Audit Logs</h4>
-          <p>View audit logs.</p>
-          <button onclick="window.location.href = 'audit-logs.html'" class="manage-btn">
-            View Audit Logs <i class="fa-solid fa-chevron-right"></i>
-          </button>
-        </div>
-        `
-            : ""
-        }
-
         <div class="setting-card">
           <h4>Push Notifications</h4>
           <p id="pushNotificationStatus">Choose whether T-HUB notifications are enabled on this device.</p>
@@ -148,12 +29,11 @@ async function initSettingsPage() {
             Enable on This Device <i class="fa-solid fa-bell"></i>
           </button>
         </div>
-
         <div class="setting-card">
           <h4>Log Out</h4>
           <p>Sign out on this device and remove saved data for this site.</p>
           <button id="clearBrowserDataBtn" type="button" class="manage-btn clear-browser-data-btn">
-            Log Out<i class="fa-solid fa-right-from-bracket"></i>
+            Log Out <i class="fa-solid fa-right-from-bracket"></i>
           </button>
         </div>
       `;
@@ -161,20 +41,9 @@ async function initSettingsPage() {
       containerEl.innerHTML = allCardsHTML;
 
       const settingIcons = new Map([
-        ["Semester", "fa-calendar-days"],
-        ["Academic Year", "fa-calendar"],
-        ["System Users", "fa-users"],
         ["My Profile", "fa-user"],
-        ["Subjects", "fa-book-open"],
-        ["Fee Structures", "fa-money-check-dollar"],
-        ["Classes", "fa-chalkboard"],
-        ["Department", "fa-building"],
-        ["Periods", "fa-clock"],
-        ["Assessment", "fa-file-pen"],
-        ["School Information", "fa-school"],
-        ["Audit Logs", "fa-clipboard-list"],
         ["Push Notifications", "fa-bell"],
-        ["Log Out & Clear Browser Data", "fa-right-from-bracket"],
+        ["Log Out", "fa-right-from-bracket"],
       ]);
 
       containerEl.querySelectorAll(".setting-card h4").forEach((heading) => {
@@ -202,9 +71,6 @@ async function initSettingsPage() {
       });
       document.addEventListener("keydown", handleClearDataDialogKeydown);
 
-      if (typeof renderNavigation === "function") {
-        renderNavigation(userRole);
-      }
     }
   } catch (err) {
     console.error("Initialization error:", err);
@@ -243,8 +109,8 @@ async function initPushNotificationSetup() {
       ? `Disable on This Device <i class="fa-solid fa-bell-slash"></i>`
       : `Enable on This Device <i class="fa-solid fa-bell"></i>`;
     status.textContent = isEnabled
-      ? "This device subscription is saved. grades, attendance and other updates will be delivered."
-      : "Notifications are off on this device. You can enable them to receive updates whenever you are ready.";
+      ? "This device is set to receive library notifications."
+      : "Notifications are off on this device. Enable them to receive library updates.";
   };
 
   try {
