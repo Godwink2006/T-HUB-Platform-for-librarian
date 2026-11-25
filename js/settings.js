@@ -209,6 +209,9 @@ async function clearCurrentBrowserData() {
   if (cancelButton) cancelButton.disabled = true;
 
   try {
+    if (window.thubDB) {
+      await window.thubDB.clearAll();
+    }
     window.libraryPageCache?.clearAll();
   } catch (error) {
     console.warn("Could not clear library page cache:", error);

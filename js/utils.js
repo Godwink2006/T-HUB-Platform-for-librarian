@@ -432,6 +432,9 @@ window.loadTransferredStudentIdentitySnapshots = async function (studentIds) {
 
 window.forceLogout = async function () {
   window.clearAuthContext?.();
+  try {
+    await window.thubDB?.clearAll();
+  } catch (e) {}
   window.libraryPageCache?.clearAll();
   if (window.supabaseClient) {
     try {
@@ -464,16 +467,12 @@ window.forceLogout = async function () {
   function readLast(page) {
     try {
       const userId =
+        window.thubDB?.getSync(window.thubDB.STORES.PAGE_CACHE, lastUserKey(page)) ||
+        window.thubDB?.getSync(window.thubDB.STORES.PAGE_CACHE, `${LEGACY_CACHE_PREFIX}${page}:last-user`) ||
         localStorage.getItem(lastUserKey(page)) ||
         localStorage.getItem(`${LEGACY_CACHE_PREFIX}${page}:last-user`);
       if (!userId) return null;
-      const raw =
-        localStorage.getItem(pageDataKey(page, userId)) ||
-        localStorage.getItem(`${LEGACY_CACHE_PREFIX}${page}:${userId}`);
-      if (!raw) return null;
-      const cached = JSON.parse(raw);
-      if (!cached || cached.userId !== userId || !cached.data) return null;
-      return cached;
+      return read(page, userId);
     } catch (error) {
       console.warn(`Could not read the saved ${page} page:`, error);
       return null;
@@ -483,31 +482,76 @@ window.forceLogout = async function () {
   function read(page, userId) {
     if (!userId) return null;
     try {
+      const cached =
+        window.thubDB?.getSync(window.thubDB.STORES.PAGE_CACHE, pageDataKey(page, userId)) ||
+        window.thubDB?.getSync(window.thubDB.STORES.PAGE_CACHE, `${LEGACY_CACHE_PREFIX}${page}:${userId}`);
+      if (cached && cached.data) {
+        return cached;
+      }
       const raw =
         localStorage.getItem(pageDataKey(page, userId)) ||
         localStorage.getItem(`${LEGACY_CACHE_PREFIX}${page}:${userId}`);
       if (!raw) return null;
-      const cached = JSON.parse(raw);
-      if (!cached || cached.userId !== userId || !cached.data) return null;
-      return cached;
+      const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
+      if (!parsed || parsed.userId !== userId || !parsed.data) return null;
+      return parsed;
     } catch (error) {
       console.warn(`Could not read the saved ${page} page:`, error);
       return null;
     }
   }
 
+  async function readAsync(page, userId) {
+    if (!userId) return null;
+    const syncResult = read(page, userId);
+    if (syncResult) return syncResult;
+    try {
+      if (window.thubDB) {
+        let entry = await window.thubDB.get(window.thubDB.STORES.PAGE_CACHE, pageDataKey(page, userId));
+        if (!entry) {
+          entry = await window.thubDB.get(window.thubDB.STORES.PAGE_CACHE, `${LEGACY_CACHE_PREFIX}${page}:${userId}`);
+        }
+        if (entry && entry.data) return entry;
+      }
+    } catch {}
+    return null;
+  }
+
+  async function readLastAsync(page) {
+    const syncResult = readLast(page);
+    if (syncResult) return syncResult;
+    try {
+      if (window.thubDB) {
+        let userId = await window.thubDB.get(window.thubDB.STORES.PAGE_CACHE, lastUserKey(page));
+        if (!userId) {
+          userId = await window.thubDB.get(window.thubDB.STORES.PAGE_CACHE, `${LEGACY_CACHE_PREFIX}${page}:last-user`);
+        }
+        if (userId) {
+          return await readAsync(page, typeof userId === "string" ? userId : userId.value || userId);
+        }
+      }
+    } catch {}
+    return null;
+  }
+
   function write(page, userId, data) {
     if (!userId) return;
     try {
-      const payload = JSON.stringify({
+      const payload = {
         userId,
         savedAt: Date.now(),
         data,
-      });
-      localStorage.setItem(pageDataKey(page, userId), payload);
-      localStorage.setItem(lastUserKey(page), userId);
-      localStorage.setItem(`${LEGACY_CACHE_PREFIX}${page}:${userId}`, payload);
-      localStorage.setItem(`${LEGACY_CACHE_PREFIX}${page}:last-user`, userId);
+      };
+      if (window.thubDB) {
+        window.thubDB.setSync(window.thubDB.STORES.PAGE_CACHE, pageDataKey(page, userId), payload);
+        window.thubDB.setSync(window.thubDB.STORES.PAGE_CACHE, lastUserKey(page), userId);
+        window.thubDB.setSync(window.thubDB.STORES.PAGE_CACHE, `${LEGACY_CACHE_PREFIX}${page}:${userId}`, payload);
+        window.thubDB.setSync(window.thubDB.STORES.PAGE_CACHE, `${LEGACY_CACHE_PREFIX}${page}:last-user`, userId);
+      } else {
+        const serialized = JSON.stringify(payload);
+        localStorage.setItem(pageDataKey(page, userId), serialized);
+        localStorage.setItem(lastUserKey(page), userId);
+      }
     } catch (error) {
       console.warn(`Could not save the ${page} page locally:`, error);
     }
@@ -515,6 +559,10 @@ window.forceLogout = async function () {
 
   function clearLast(page) {
     try {
+      if (window.thubDB) {
+        window.thubDB.deleteSync(window.thubDB.STORES.PAGE_CACHE, lastUserKey(page));
+        window.thubDB.deleteSync(window.thubDB.STORES.PAGE_CACHE, `${LEGACY_CACHE_PREFIX}${page}:last-user`);
+      }
       localStorage.removeItem(lastUserKey(page));
       localStorage.removeItem(`${LEGACY_CACHE_PREFIX}${page}:last-user`);
     } catch (error) {
@@ -523,6 +571,9 @@ window.forceLogout = async function () {
   }
 
   function clearAll() {
+    try {
+      window.thubDB?.clearAll();
+    } catch {}
     for (const storage of [localStorage, sessionStorage]) {
       try {
         for (let index = storage.length - 1; index >= 0; index -= 1) {
@@ -563,8 +614,13 @@ window.forceLogout = async function () {
           continue;
 
         const value = sessionStorage.getItem(key);
-        if (value !== null && localStorage.getItem(key) === null) {
-          localStorage.setItem(key, value);
+        if (value !== null) {
+          try {
+            const parsed = JSON.parse(value);
+            window.thubDB?.setSync(window.thubDB.STORES.PAGE_CACHE, key, parsed);
+          } catch {
+            window.thubDB?.setSync(window.thubDB.STORES.PAGE_CACHE, key, value);
+          }
         }
         sessionStorage.removeItem(key);
       }
@@ -578,6 +634,8 @@ window.forceLogout = async function () {
   const cacheApi = Object.freeze({
     read,
     readLast,
+    readAsync,
+    readLastAsync,
     write,
     clearLast,
     clearAll,

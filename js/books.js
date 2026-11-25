@@ -17,33 +17,66 @@ let booksCacheRestored = false;
 function readBooksCache() {
   if (!booksCacheKey) return null;
   try {
+    const cached =
+      window.thubDB?.getSync(window.thubDB.STORES.BOOKS_CACHE, booksCacheKey) ||
+      window.thubDB?.getSync(
+        window.thubDB.STORES.BOOKS_CACHE,
+        booksCacheKey.replace(BOOKS_CACHE_PREFIX, LEGACY_BOOKS_CACHE_PREFIX),
+      );
+    if (cached && Array.isArray(cached.books)) return cached;
+
     const raw =
       localStorage.getItem(booksCacheKey) ||
       localStorage.getItem(booksCacheKey.replace(BOOKS_CACHE_PREFIX, LEGACY_BOOKS_CACHE_PREFIX));
-    const cached = JSON.parse(raw || "null");
-    if (!cached || !Array.isArray(cached.books)) return null;
-    return cached;
+    const parsed = typeof raw === "string" ? JSON.parse(raw || "null") : raw;
+    if (!parsed || !Array.isArray(parsed.books)) return null;
+    return parsed;
   } catch (error) {
     console.warn("Could not read the saved books catalog:", error);
     return null;
   }
 }
 
+async function readBooksCacheAsync() {
+  const syncVal = readBooksCache();
+  if (syncVal) return syncVal;
+  if (!booksCacheKey || !window.thubDB) return null;
+  try {
+    let cached = await window.thubDB.get(window.thubDB.STORES.BOOKS_CACHE, booksCacheKey);
+    if (!cached) {
+      cached = await window.thubDB.get(
+        window.thubDB.STORES.BOOKS_CACHE,
+        booksCacheKey.replace(BOOKS_CACHE_PREFIX, LEGACY_BOOKS_CACHE_PREFIX),
+      );
+    }
+    if (cached && Array.isArray(cached.books)) return cached;
+  } catch (error) {
+    console.warn("Could not read async saved books catalog from IndexedDB:", error);
+  }
+  return null;
+}
+
 function saveBooksCache() {
   if (!booksCacheKey) return;
   try {
-    const payload = JSON.stringify({
+    const payload = {
       savedAt: Date.now(),
       userId: booksUserId,
       schoolId: booksSchoolId,
       books: allCatalogBooks,
       hasMore: booksHasMore,
-    });
-    localStorage.setItem(booksCacheKey, payload);
-    localStorage.setItem(
-      booksCacheKey.replace(BOOKS_CACHE_PREFIX, LEGACY_BOOKS_CACHE_PREFIX),
-      payload,
-    );
+    };
+    if (window.thubDB) {
+      window.thubDB.setSync(window.thubDB.STORES.BOOKS_CACHE, booksCacheKey, payload);
+      window.thubDB.setSync(
+        window.thubDB.STORES.BOOKS_CACHE,
+        booksCacheKey.replace(BOOKS_CACHE_PREFIX, LEGACY_BOOKS_CACHE_PREFIX),
+        payload,
+      );
+    } else {
+      const serialized = JSON.stringify(payload);
+      localStorage.setItem(booksCacheKey, serialized);
+    }
   } catch (error) {
     console.warn("Could not save the books catalog locally:", error);
   }
@@ -52,13 +85,18 @@ function saveBooksCache() {
 function saveBooksAccess() {
   if (!booksUserId) return;
   try {
-    const payload = JSON.stringify({
+    const payload = {
       userId: booksUserId,
       schoolId: booksSchoolId,
       cacheKey: booksCacheKey,
-    });
-    localStorage.setItem(BOOKS_LAST_ACCESS_KEY, payload);
-    localStorage.setItem(LEGACY_BOOKS_LAST_ACCESS_KEY, payload);
+    };
+    if (window.thubDB) {
+      window.thubDB.setSync(window.thubDB.STORES.BOOKS_CACHE, BOOKS_LAST_ACCESS_KEY, payload);
+      window.thubDB.setSync(window.thubDB.STORES.BOOKS_CACHE, LEGACY_BOOKS_LAST_ACCESS_KEY, payload);
+    } else {
+      const serialized = JSON.stringify(payload);
+      localStorage.setItem(BOOKS_LAST_ACCESS_KEY, serialized);
+    }
   } catch (error) {
     console.warn("Could not save librarian catalog access locally:", error);
   }
@@ -66,11 +104,14 @@ function saveBooksAccess() {
 
 function restoreCachedBooksPage() {
   try {
-    const savedAccess = JSON.parse(
-      localStorage.getItem(BOOKS_LAST_ACCESS_KEY) ||
-        localStorage.getItem(LEGACY_BOOKS_LAST_ACCESS_KEY) ||
-        "null",
-    );
+    const savedAccess =
+      window.thubDB?.getSync(window.thubDB.STORES.BOOKS_CACHE, BOOKS_LAST_ACCESS_KEY) ||
+      window.thubDB?.getSync(window.thubDB.STORES.BOOKS_CACHE, LEGACY_BOOKS_LAST_ACCESS_KEY) ||
+      JSON.parse(
+        localStorage.getItem(BOOKS_LAST_ACCESS_KEY) ||
+          localStorage.getItem(LEGACY_BOOKS_LAST_ACCESS_KEY) ||
+          "null",
+      );
     const savedUserId = savedAccess?.userId || savedAccess?.studentId;
     if (!savedUserId) return false;
 
@@ -100,6 +141,65 @@ function restoreCachedBooksPage() {
     return true;
   } catch (error) {
     console.warn("Could not restore the saved Books page:", error);
+    return false;
+  }
+}
+
+async function restoreCachedBooksPageAsync() {
+  if (booksCacheRestored && allCatalogBooks.length > 0) return true;
+  try {
+    let savedAccess =
+      window.thubDB?.getSync(window.thubDB.STORES.BOOKS_CACHE, BOOKS_LAST_ACCESS_KEY) ||
+      window.thubDB?.getSync(window.thubDB.STORES.BOOKS_CACHE, LEGACY_BOOKS_LAST_ACCESS_KEY);
+    if (!savedAccess && window.thubDB) {
+      savedAccess = await window.thubDB.get(window.thubDB.STORES.BOOKS_CACHE, BOOKS_LAST_ACCESS_KEY);
+      if (!savedAccess) {
+        savedAccess = await window.thubDB.get(window.thubDB.STORES.BOOKS_CACHE, LEGACY_BOOKS_LAST_ACCESS_KEY);
+      }
+    }
+    if (!savedAccess) {
+      try {
+        savedAccess = JSON.parse(
+          localStorage.getItem(BOOKS_LAST_ACCESS_KEY) ||
+            localStorage.getItem(LEGACY_BOOKS_LAST_ACCESS_KEY) ||
+            "null",
+        );
+      } catch {}
+    }
+
+    const savedUserId = savedAccess?.userId || savedAccess?.studentId;
+    if (!savedUserId) return false;
+
+    booksUserId = savedUserId;
+    booksSchoolId = savedAccess.schoolId || "";
+    booksCacheKey = `${BOOKS_CACHE_PREFIX}${booksUserId}:${booksSchoolId || "no-school"}`;
+
+    const cachedCatalog = await readBooksCacheAsync();
+    if (!cachedCatalog || !Array.isArray(cachedCatalog.books) || cachedCatalog.books.length === 0) {
+      return false;
+    }
+
+    if (cachedCatalog.userId && cachedCatalog.userId !== booksUserId) {
+      return false;
+    }
+
+    allCatalogBooks = cachedCatalog.books;
+    booksOffset = allCatalogBooks.length;
+    booksHasMore = cachedCatalog.hasMore === true;
+    booksCacheRestored = true;
+
+    const catalog = document.getElementById("booksCatalog");
+    const mainContent = document.querySelector(".books-main-content, .students-main-content");
+    if (catalog) catalog.hidden = false;
+    mainContent?.classList.remove("books-access-checking");
+
+    const query =
+      document.getElementById("catalogSearchInput")?.value.toLowerCase().trim() || "";
+    renderBookCards(filterCatalogBooks(query));
+    updateBooksNextButton();
+    return true;
+  } catch (error) {
+    console.warn("Could not async restore the saved Books page:", error);
     return false;
   }
 }
@@ -480,7 +580,9 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   restoreCachedBooksPage();
-  initializeBooksPage();
+  restoreCachedBooksPageAsync().finally(() => {
+    initializeBooksPage();
+  });
 });
 
 async function openStudentBookHistoryModal(bookId) {

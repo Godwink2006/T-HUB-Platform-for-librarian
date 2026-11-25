@@ -62,20 +62,34 @@ function persistentSupabaseReadCacheKey(cacheKey) {
     return `${SUPABASE_READ_STORAGE_PREFIX}${(hash >>> 0).toString(36)}`;
 }
 
-function readPersistentSupabaseResponse(cacheKey, { allowExpired = false } = {}) {
+async function readPersistentSupabaseResponse(cacheKey, { allowExpired = false } = {}) {
     try {
         const storageKey = persistentSupabaseReadCacheKey(cacheKey);
-        const serializedEntry = localStorage.getItem(storageKey);
-        if (!serializedEntry) return null;
+        let entry = null;
+        if (window.thubDB) {
+            entry = await window.thubDB.get(window.thubDB.STORES.SUPABASE_CACHE, storageKey);
+        }
+        if (!entry) {
+            const serializedEntry = localStorage.getItem(storageKey);
+            if (serializedEntry) {
+                try {
+                    entry = JSON.parse(serializedEntry);
+                } catch {
+                    entry = null;
+                }
+            }
+        }
+        if (!entry) return null;
 
-        const entry = JSON.parse(serializedEntry);
         if (entry.cacheKey !== cacheKey || !Number.isFinite(entry.expiresAt)) {
+            if (window.thubDB) window.thubDB.delete(window.thubDB.STORES.SUPABASE_CACHE, storageKey);
             localStorage.removeItem(storageKey);
             return null;
         }
 
         const isExpired = entry.expiresAt <= Date.now();
         if (isExpired && !allowExpired) {
+            if (window.thubDB) window.thubDB.delete(window.thubDB.STORES.SUPABASE_CACHE, storageKey);
             localStorage.removeItem(storageKey);
             return null;
         }
@@ -120,67 +134,30 @@ async function persistSupabaseReadResponse(cacheKey, response, expiresAt) {
             body: bodyText,
             expiresAt,
         };
-        const serializedEntry = JSON.stringify(entry);
-        if (serializedEntry.length * 2 > SUPABASE_READ_STORAGE_ENTRY_LIMIT_BYTES) return;
+        const storageKey = persistentSupabaseReadCacheKey(cacheKey);
 
-        localStorage.setItem(
-            persistentSupabaseReadCacheKey(cacheKey),
-            serializedEntry,
-        );
-        trimPersistentSupabaseReadCache();
+        if (window.thubDB) {
+            await window.thubDB.set(window.thubDB.STORES.SUPABASE_CACHE, storageKey, entry);
+        } else {
+            const serializedEntry = JSON.stringify(entry);
+            if (serializedEntry.length * 2 <= SUPABASE_READ_STORAGE_ENTRY_LIMIT_BYTES) {
+                localStorage.setItem(storageKey, serializedEntry);
+            }
+        }
     } catch {
-        // Keep the in-memory cache working when browser storage is unavailable/full.
+        // Keep the in-memory cache working when browser storage is unavailable.
     }
 }
 
 function trimPersistentSupabaseReadCache() {
-    try {
-        const now = Date.now();
-        const keysToCheck = [];
-        for (let index = 0; index < localStorage.length; index += 1) {
-            const key = localStorage.key(index);
-            if (key?.startsWith(SUPABASE_READ_STORAGE_PREFIX)) {
-                keysToCheck.push(key);
-            }
-        }
-
-        const entries = [];
-        let totalBytes = 0;
-
-        for (const key of keysToCheck) {
-            const value = localStorage.getItem(key) || "";
-            let expiresAt = 0;
-            try {
-                expiresAt = JSON.parse(value).expiresAt || 0;
-            } catch {
-                // Corrupted entries are removed immediately
-                localStorage.removeItem(key);
-                continue;
-            }
-
-            if (expiresAt <= now) {
-                localStorage.removeItem(key);
-                continue;
-            }
-
-            const sizeBytes = (key.length + value.length) * 2;
-            totalBytes += sizeBytes;
-            entries.push({ key, sizeBytes, expiresAt });
-        }
-
-        entries.sort((left, right) => left.expiresAt - right.expiresAt);
-        while (totalBytes > SUPABASE_READ_STORAGE_LIMIT_BYTES && entries.length) {
-            const oldestEntry = entries.shift();
-            localStorage.removeItem(oldestEntry.key);
-            totalBytes -= oldestEntry.sizeBytes;
-        }
-    } catch {
-        // Storage cleanup is best effort; query results still work in memory.
-    }
+    // IndexedDB manages its own quota dynamically; no aggressive trimming required.
 }
 
 function clearPersistentSupabaseReadCache() {
     try {
+        if (window.thubDB) {
+            window.thubDB.clear(window.thubDB.STORES.SUPABASE_CACHE);
+        }
         const keysToRemove = [];
         for (let index = 0; index < localStorage.length; index += 1) {
             const key = localStorage.key(index);
@@ -200,16 +177,22 @@ window.clearSupabaseReadCache = function () {
     clearPersistentSupabaseReadCache();
 };
 
-window.getSupabaseCacheStats = function () {
+window.getSupabaseCacheStats = async function () {
     try {
         let persistentEntries = 0;
         let persistentBytes = 0;
-        for (let index = 0; index < localStorage.length; index += 1) {
-            const key = localStorage.key(index);
-            if (key?.startsWith(SUPABASE_READ_STORAGE_PREFIX)) {
-                persistentEntries += 1;
-                const value = localStorage.getItem(key) || "";
-                persistentBytes += (key.length + value.length) * 2;
+        if (window.thubDB) {
+            const all = await window.thubDB.getAll(window.thubDB.STORES.SUPABASE_CACHE);
+            persistentEntries = all.length;
+            persistentBytes = JSON.stringify(all).length * 2;
+        } else {
+            for (let index = 0; index < localStorage.length; index += 1) {
+                const key = localStorage.key(index);
+                if (key?.startsWith(SUPABASE_READ_STORAGE_PREFIX)) {
+                    persistentEntries += 1;
+                    const value = localStorage.getItem(key) || "";
+                    persistentBytes += (key.length + value.length) * 2;
+                }
             }
         }
         return {
@@ -282,8 +265,8 @@ async function cachedSupabaseFetch(input, init) {
         return cached.response.clone();
     }
 
-    // 2. Check persistent localStorage cache
-    const persistentEntry = readPersistentSupabaseResponse(key);
+    // 2. Check persistent IndexedDB cache
+    const persistentEntry = await readPersistentSupabaseResponse(key);
     if (persistentEntry && !persistentEntry.isExpired) {
         supabaseReadCache.set(key, {
             response: persistentEntry.response.clone(),
@@ -310,9 +293,9 @@ async function cachedSupabaseFetch(input, init) {
                 }
                 return response;
             })
-            .catch((error) => {
+            .catch(async (error) => {
                 // Offline fallback: if network fails, serve persistent cached entry if available
-                const fallbackEntry = readPersistentSupabaseResponse(key, { allowExpired: true });
+                const fallbackEntry = await readPersistentSupabaseResponse(key, { allowExpired: true });
                 if (fallbackEntry) {
                     return fallbackEntry.response;
                 }

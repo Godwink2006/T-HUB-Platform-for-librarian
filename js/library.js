@@ -734,8 +734,10 @@ function saveLibraryCache() {
     if (userId !== "librarian") {
       window.libraryPageCache?.write(LIBRARY_CACHE_PAGE, "librarian", payload);
     }
-    localStorage.setItem(LIBRARY_DEDICATED_CACHE_KEY, JSON.stringify(payload));
-    localStorage.setItem("thubLibrary:canDelete", String(canDeleteLibraryBooks));
+    if (window.thubDB) {
+      window.thubDB.setSync(window.thubDB.STORES.BOOKS_CACHE, LIBRARY_DEDICATED_CACHE_KEY, payload);
+      window.thubDB.setSync(window.thubDB.STORES.KEYVAL, "thubLibrary:canDelete", String(canDeleteLibraryBooks));
+    }
   } catch (error) {
     console.warn("Could not save library inventory cache:", error);
   }
@@ -746,7 +748,10 @@ function restoreCachedLibraryPage() {
     const tableBody = document.getElementById("booksTableBody");
     if (!tableBody) return false;
 
-    if (localStorage.getItem("thubLibrary:canDelete") === "true") {
+    const canDeleteVal =
+      window.thubDB?.getSync(window.thubDB.STORES.KEYVAL, "thubLibrary:canDelete") ||
+      localStorage.getItem("thubLibrary:canDelete");
+    if (canDeleteVal === "true") {
       canDeleteLibraryBooks = true;
     }
 
@@ -777,57 +782,102 @@ function restoreCachedLibraryPage() {
     }
 
     if (!books) {
-      const directRaw = localStorage.getItem(LIBRARY_DEDICATED_CACHE_KEY);
-      if (directRaw) {
-        try {
-          const direct = JSON.parse(directRaw);
-          if (direct?.books && Array.isArray(direct.books) && direct.books.length > 0) {
-            books = direct.books;
-            hasMore = direct.hasMore === true;
+      const direct =
+        window.thubDB?.getSync(window.thubDB.STORES.BOOKS_CACHE, LIBRARY_DEDICATED_CACHE_KEY) ||
+        (() => {
+          try {
+            return JSON.parse(localStorage.getItem(LIBRARY_DEDICATED_CACHE_KEY) || "null");
+          } catch {
+            return null;
           }
-        } catch {}
+        })();
+      if (direct?.books && Array.isArray(direct.books) && direct.books.length > 0) {
+        books = direct.books;
+        hasMore = direct.hasMore === true;
       }
     }
 
     if (!books || books.length === 0) return false;
 
-    loadedLibraryBooks = books;
-    libraryBooksOffset = loadedLibraryBooks.length;
-    libraryBooksHasMore = hasMore;
-
-    tableBody.replaceChildren();
-    loadedLibraryBooks.forEach((book) => {
-      tableBody.appendChild(
-        createLibraryBookRow(book, book._cachedBorrowedCount || 0),
-      );
-    });
-
-    const departmentFilter = document.getElementById("libraryDepartmentFilter");
-    if (departmentFilter) {
-      const departmentNames = [
-        ...new Set(
-          loadedLibraryBooks
-            .map((b) => b.departments?.name)
-            .filter((n) => typeof n === "string" && n.trim()),
-        ),
-      ].sort((a, b) => a.localeCompare(b));
-
-      departmentFilter.replaceChildren(new Option("All Departments", ""));
-      departmentNames.forEach((n) => departmentFilter.appendChild(new Option(n, n)));
-    }
-
-    applyLibraryBookFilters();
-    attachBookActionListeners();
-
-    const nextButton = document.getElementById("nextLibraryBooksPage");
-    if (nextButton) {
-      nextButton.hidden = !libraryBooksHasMore;
-      nextButton.disabled = false;
-      nextButton.textContent = "Next";
-    }
+    renderCachedLibraryBooks(books, hasMore);
     return true;
   } catch (error) {
-    console.warn("Could not restore cached library page:", error);
+    console.warn("Could not restore cached library books page:", error);
+    return false;
+  }
+}
+
+function renderCachedLibraryBooks(books, hasMore) {
+  const tableBody = document.getElementById("booksTableBody");
+  if (!tableBody || !books || !Array.isArray(books)) return;
+
+  loadedLibraryBooks = books;
+  libraryBooksOffset = loadedLibraryBooks.length;
+  libraryBooksHasMore = hasMore === true;
+
+  tableBody.replaceChildren();
+  loadedLibraryBooks.forEach((book) => {
+    tableBody.appendChild(
+      createLibraryBookRow(book, book._cachedBorrowedCount || 0),
+    );
+  });
+
+  const departmentFilter = document.getElementById("libraryDepartmentFilter");
+  if (departmentFilter) {
+    const departmentNames = [
+      ...new Set(
+        loadedLibraryBooks
+          .map((b) => b.departments?.name)
+          .filter((n) => typeof n === "string" && n.trim()),
+      ),
+    ].sort((a, b) => a.localeCompare(b));
+
+    departmentFilter.replaceChildren(new Option("All Departments", ""));
+    departmentNames.forEach((n) => departmentFilter.appendChild(new Option(n, n)));
+  }
+
+  applyLibraryBookFilters();
+  attachBookActionListeners();
+
+  const nextButton = document.getElementById("nextLibraryBooksPage");
+  if (nextButton) {
+    nextButton.hidden = !libraryBooksHasMore;
+    nextButton.disabled = false;
+    nextButton.textContent = "Next";
+  }
+}
+
+async function restoreCachedLibraryPageAsync() {
+  if (loadedLibraryBooks && loadedLibraryBooks.length > 0) return true;
+  try {
+    const tableBody = document.getElementById("booksTableBody");
+    if (!tableBody) return false;
+
+    let books = null;
+    let hasMore = false;
+
+    if (window.thubDB) {
+      const direct = await window.thubDB.get(window.thubDB.STORES.BOOKS_CACHE, LIBRARY_DEDICATED_CACHE_KEY);
+      if (direct?.books && Array.isArray(direct.books) && direct.books.length > 0) {
+        books = direct.books;
+        hasMore = direct.hasMore === true;
+      }
+    }
+
+    if (!books && window.libraryPageCache?.readLastAsync) {
+      const cached = await window.libraryPageCache.readLastAsync(LIBRARY_CACHE_PAGE);
+      if (cached?.data?.books && Array.isArray(cached.data.books) && cached.data.books.length > 0) {
+        books = cached.data.books;
+        hasMore = cached.data.hasMore === true;
+      }
+    }
+
+    if (!books || books.length === 0) return false;
+
+    renderCachedLibraryBooks(books, hasMore);
+    return true;
+  } catch (error) {
+    console.warn("Could not async restore cached library books page:", error);
     return false;
   }
 }
@@ -2111,6 +2161,7 @@ restoreCachedLibraryPage();
 
 function initLibraryPage() {
   restoreCachedLibraryPage();
+  restoreCachedLibraryPageAsync();
 
   const libraryThemeToggle = document.getElementById("libraryThemeToggle");
   if (libraryThemeToggle && !libraryThemeToggle.dataset.themeBound) {
