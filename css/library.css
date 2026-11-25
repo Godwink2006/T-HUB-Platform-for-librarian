@@ -1788,3 +1788,23 @@ body.app-dark .library-delete-modal-actions button:not(#confirmDeleteLibraryBook
   background: #3f3f46 !important;
   color: #ffffff !important;
 }
+
+/* Keep the Add Book and Edit Book cover upload areas in the dark palette. */
+body.app-dark :is(.book-modal-content, .edit-book-modal-content) .avatar-upload-group .form-label {
+  color: #cbd5e1 !important;
+}
+
+body.app-dark :is(.book-modal-content, .edit-book-modal-content) .avatar-edit-container {
+  background: #202024 !important;
+  border: 1px solid #333339 !important;
+  color: #e2e8f0 !important;
+}
+
+body.app-dark :is(.book-modal-content, .edit-book-modal-content) .avatar-preview-wrapper {
+  background: #18181b !important;
+  border-color: #3f3f46 !important;
+}
+
+body.app-dark :is(.book-modal-content, .edit-book-modal-content) .file-name-text {
+  color: #a1a1aa !important;
+}

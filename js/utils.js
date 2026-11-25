@@ -609,49 +609,72 @@ window.forceLogout = async function () {
   };
 
   window.ensureLibrarianRefreshButton = function () {
-    if (
-      isLoginPage() ||
-      document.getElementById("librarianPageRefresh") ||
-      document.querySelector('main button[id^="refresh"], main button[aria-label*="Refresh"]')
-    ) return;
-    const header = document.querySelector("main .topbar, main .notifications-header, main .page-header, main header") ||
-      document.querySelector(".my-profiles-page .page-header, .settings-page .page-header");
-    if (!header) return;
-    const button = document.createElement("button");
-    button.type = "button";
-    button.id = "librarianPageRefresh";
-    button.className = "librarian-page-refresh";
-    button.title = "Load the latest data";
-    button.setAttribute("aria-label", "Refresh page data");
-    button.innerHTML = '<i class="fa-solid fa-rotate" aria-hidden="true"></i><span>Refresh</span>';
-    const adjacentActions = header.matches(".page-header") && header.nextElementSibling?.querySelector("button")
-      ? header.nextElementSibling
-      : null;
-    const actions = header.querySelector(".topbar-actions, .dashboard-topbar-actions, .header-actions") || adjacentActions;
-    (actions || header).appendChild(button);
+    if (isLoginPage()) return;
+    let button = document.getElementById("librarianPageRefresh");
+    if (!button) {
+      if (document.querySelector('main button[id^="refresh"], main button[aria-label*="Refresh"]')) return;
+      const header = document.querySelector("main .topbar, main .notifications-header, main .page-header, main header") ||
+        document.querySelector(".my-profiles-page .page-header, .settings-page .page-header");
+      if (!header) return;
+      button = document.createElement("button");
+      button.type = "button";
+      button.id = "librarianPageRefresh";
+      button.className = "librarian-page-refresh";
+      button.title = "Load the latest data";
+      button.setAttribute("aria-label", "Refresh page data");
+      button.innerHTML = '<i class="fa-solid fa-rotate" aria-hidden="true"></i><span>Refresh</span>';
+      const adjacentActions = header.matches(".page-header") && header.nextElementSibling?.querySelector("button")
+        ? header.nextElementSibling
+        : null;
+      const actions = header.querySelector(".topbar-actions, .dashboard-topbar-actions, .header-actions") || adjacentActions;
+      (actions || header).appendChild(button);
+    }
+
+    // Use the button's property handler so the SPA router does not remove it
+    // when it pauses the outgoing page's document listeners.
+    button.onclick = async () => {
+      if (button.disabled) return;
+      const refreshStartedAt = performance.now();
+      button.disabled = true;
+      button.classList.add("is-refreshing");
+      button.innerHTML = '<i class="fa-solid fa-rotate fa-spin" aria-hidden="true"></i><span>Refreshing...</span>';
+      try {
+        await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+        const page = location.pathname.split("/").pop();
+        const { data } = await window.supabaseClient?.auth?.getSession?.() || {};
+        const userId = data?.session?.user?.id;
+        (pageCacheKeys[page] || []).forEach((key) => window.libraryPageCache?.clear(key, userId));
+        window.clearSupabaseReadCache?.();
+        // Keep the changed label visible long enough to register before navigation.
+        const remainingFeedbackTime = 600 - (performance.now() - refreshStartedAt);
+        if (remainingFeedbackTime > 0) {
+          await new Promise((resolve) => setTimeout(resolve, remainingFeedbackTime));
+        }
+        location.reload();
+      } catch (error) {
+        console.error("Could not refresh librarian page data:", error);
+        button.disabled = false;
+        button.classList.remove("is-refreshing");
+        button.innerHTML = '<i class="fa-solid fa-rotate" aria-hidden="true"></i><span>Refresh</span>';
+      }
+    };
   };
 
-  document.addEventListener("click", async (event) => {
-    const button = event.target.closest("#librarianPageRefresh");
-    if (!button || button.disabled) return;
-    button.disabled = true;
-    button.classList.add("is-refreshing");
-    button.innerHTML = '<i class="fa-solid fa-rotate fa-spin" aria-hidden="true"></i><span>Refreshing...</span>';
-    try {
-      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-      const page = location.pathname.split("/").pop();
-      const { data } = await window.supabaseClient?.auth?.getSession?.() || {};
-      const userId = data?.session?.user?.id;
-      (pageCacheKeys[page] || []).forEach((key) => window.libraryPageCache?.clear(key, userId));
-      window.clearSupabaseReadCache?.();
-      location.reload();
-    } catch (error) {
-      console.error("Could not refresh librarian page data:", error);
-      button.disabled = false;
-      button.classList.remove("is-refreshing");
-      button.innerHTML = '<i class="fa-solid fa-rotate" aria-hidden="true"></i><span>Refresh</span>';
-    }
-  });
+  window.ensureLibrarianSidebarControls = function () {
+    const sidebar = document.querySelector(".sidebar");
+    const overlay = document.getElementById("sidebarOverlay");
+    const menuToggle = document.getElementById("menuToggle");
+    if (!sidebar || !overlay || !menuToggle) return;
+
+    menuToggle.onclick = () => {
+      sidebar.classList.toggle("active");
+      overlay.classList.toggle("active");
+    };
+    overlay.onclick = () => {
+      sidebar.classList.remove("active");
+      overlay.classList.remove("active");
+    };
+  };
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", window.ensureLibrarianRefreshButton);
@@ -673,22 +696,15 @@ async function checkPageAccess() {
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
-  const menuToggle = document.getElementById("menuToggle");
   const sidebar = document.querySelector(".sidebar");
   const overlay = document.getElementById("sidebarOverlay");
 
-  function toggleMenu() {
-    sidebar.classList.toggle("active");
-    overlay.classList.toggle("active");
-  }
-
   function closeMenu() {
-    sidebar.classList.remove("active");
-    overlay.classList.remove("active");
+    sidebar?.classList.remove("active");
+    overlay?.classList.remove("active");
   }
 
-  if (menuToggle) menuToggle.addEventListener("click", toggleMenu);
-  if (overlay) overlay.addEventListener("click", closeMenu);
+  window.ensureLibrarianSidebarControls?.();
 
   document.querySelectorAll(".menu a").forEach((link) => {
     link.addEventListener("click", (e) => {

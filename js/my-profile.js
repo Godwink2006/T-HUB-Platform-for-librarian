@@ -552,8 +552,3 @@ document.addEventListener("DOMContentLoaded", function () {
   saveBtn.style.display = "flex";
 });
 
-document.addEventListener("DOMContentLoaded", () => {
-  const backBtn = document.getElementById("backBtn");
-  if (!backBtn) return;
-  backBtn.onclick = () => window.location.replace("settings.html");
-});

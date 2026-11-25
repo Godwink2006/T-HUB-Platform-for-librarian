@@ -13,6 +13,7 @@
       content="width=device-width, initial-scale=1.0"
     />
     <title>My Profile - T-HUB Library</title>
+    <link rel="stylesheet" href="/css/settings.css" />
     <link rel="stylesheet" href="/css/my-profile.css" />
     <link rel="stylesheet" href="/css/utils.css" />
     <link rel="preconnect" href="https://fontsgoogleapis.com" />
@@ -41,6 +42,25 @@
     <link rel="stylesheet" href="/css/app-theme.css" />
   </head>
   <body>
+    <div class="academics-container">
+      <button class="menu-toggle" id="menuToggle" aria-label="Toggle Navigation" type="button">
+        <i class="fa-solid fa-bars"></i>
+      </button>
+      <div class="sidebar-overlay" id="sidebarOverlay"></div>
+      <aside class="sidebar">
+        <div class="logo">
+          <img id="appHeaderLogo" src="https://api.dicebear.com/7.x/initials/svg?seed=Library" alt="Library Logo" />
+          <h2>T-HUB</h2>
+        </div>
+        <ul class="menu">
+          <li><a href="dashboard.html"><i class="fa-solid fa-house"></i><span>Dashboard</span></a></li>
+          <li><a href="books.html"><i class="fa-solid fa-book-open"></i><span>Catalog</span></a></li>
+          <li><a href="library.html"><i class="fa-solid fa-arrow-right-arrow-left"></i><span>Inventory &amp; Circulation</span></a></li>
+          <li><a href="library-reports.html"><i class="fa-solid fa-chart-line"></i><span>Library Reports</span></a></li>
+          <li class="active"><a href="settings.html"><i class="fa-solid fa-gear"></i><span>Settings</span></a></li>
+        </ul>
+      </aside>
+      <main class="settings-main-content">
     <section class="my-profiles-page" id="myProfile">
       <div class="page-header">
         <h2>My Profile</h2>
@@ -48,10 +68,6 @@
       </div>
 
       <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 16px;">
-        <button id="backBtn" type="button" class="back-my-profiles-btn" style="margin-bottom: 0;">
-          <i class="fa-solid fa-chevron-left"></i>
-          Back
-        </button>
         <button
           id="profileThemeToggle"
           class="app-theme-toggle back-my-profiles-btn"
@@ -280,10 +296,13 @@
     </section>
 
     <div id="toastContainer" class="toast-container"></div>
+      </main>
+    </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.1"></script>
     <script src="/js/db.js"></script>
     <script src="/js/supabase.js"></script>
+    <script src="/js/spa-router.js"></script>
     <script src="/js/utils.js"></script>
     <script src="/js/my-profile.js"></script>
     <script src="/js/app-icons.js"></script>

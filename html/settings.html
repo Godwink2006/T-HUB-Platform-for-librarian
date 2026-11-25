@@ -78,14 +78,14 @@
           <div class="setting-card">
             <h4><i class="fa-solid fa-user" aria-hidden="true"></i> My Profile</h4>
             <p>Update your librarian profile and sign-in details.</p>
-            <button onclick="window.location.href = 'my-profile.html'" class="manage-btn">
+            <button onclick="window.SPARouter ? window.SPARouter.navigate('my-profile.html') : (window.location.href = 'my-profile.html')" class="manage-btn">
               Manage Profile <i class="fa-solid fa-chevron-right"></i>
             </button>
           </div>
           <div class="setting-card">
             <h4><i class="fa-solid fa-school" aria-hidden="true"></i> School Information</h4>
             <p>View your school’s name, identity, and contact information.</p>
-            <button onclick="window.location.href = 'school-information.html'" class="manage-btn">
+            <button onclick="window.SPARouter ? window.SPARouter.navigate('school-information.html') : (window.location.href = 'school-information.html')" class="manage-btn">
               View School Information <i class="fa-solid fa-chevron-right"></i>
             </button>
           </div>

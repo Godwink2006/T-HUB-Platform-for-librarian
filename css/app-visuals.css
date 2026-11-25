@@ -31,6 +31,15 @@
   margin-right: 0.5em;
 }
 
+/* Separate the fixed navigation rail from page content on every librarian page. */
+:is(.sidebar, aside.sidebar) {
+  border-right: 1px solid #d1d5db !important;
+}
+
+body.app-dark :is(.sidebar, aside.sidebar) {
+  border-right-color: #27272a !important;
+}
+
 /* Keep the librarian UI's cards, controls, and dialogs rounded on every screen. */
 body :is(
     .menu li a,

@@ -437,11 +437,13 @@
       swapPageBody(targetDoc);
       pageSwapped = true;
       window.applySavedAppTheme?.();
+      window.ensureLibrarianSidebarControls?.();
       window.ensureLibrarianRefreshButton?.();
       document.title = targetDoc.title;
       updateActiveLink(targetURL, targetDoc);
       if (push) history.pushState({ spa: true, url: targetURL }, document.title, targetURL);
       await runPageScripts(targetDoc, activeScope);
+      window.ensureLibrarianSidebarControls?.();
       window.ensureLibrarianRefreshButton?.();
       window.scrollTo(0, 0);
       closeSidebar();
