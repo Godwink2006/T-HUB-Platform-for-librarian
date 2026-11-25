@@ -1,6 +1,9 @@
 (function () {
   "use strict";
 
+  if (window.__spaRouterInitialized) return;
+  window.__spaRouterInitialized = true;
+
   const HTML_TTL = 60_000;
   const htmlCache = new Map();
   const pageInflight = new Map();
