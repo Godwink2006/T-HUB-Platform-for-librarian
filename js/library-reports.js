@@ -9,6 +9,7 @@ const LIBRARY_REPORTS_CACHE_PAGE = "library-reports";
 document.addEventListener("DOMContentLoaded", async () => {
   const summaryBody = document.getElementById("librarySummaryBody");
   const detailBody = document.getElementById("libraryDetailBody");
+  const detailCount = document.getElementById("detailRecordCount");
   let allBooksData = [];
   let restoredReport = null;
 
@@ -30,7 +31,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   // DOM Elements
   const filterDepartment = document.getElementById("filterDepartment");
   const filterStatus = document.getElementById("filterStatus");
-  const detailCount = document.getElementById("detailRecordCount");
 
   if (restoredReport) {
     const departments = [...new Map(allBooksData
