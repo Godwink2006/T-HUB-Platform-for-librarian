@@ -7,12 +7,14 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   let currentFilter = "all";
   let notificationsData = [];
+  let notificationsCacheRestored = false;
 
   // Restore cached notifications immediately for zero-latency UI
   try {
     const cached = window.libraryPageCache?.readLast(NOTIFICATIONS_CACHE_PAGE);
-    if (cached?.data && Array.isArray(cached.data) && cached.data.length > 0) {
+    if (cached?.data && Array.isArray(cached.data)) {
       notificationsData = cached.data;
+      notificationsCacheRestored = true;
       renderNotifications();
     }
   } catch (error) {
@@ -202,5 +204,5 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   });
 
-  fetchNotifications();
+  if (!notificationsCacheRestored) fetchNotifications();
 });

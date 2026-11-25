@@ -106,102 +106,11 @@ window.formatSchoolMoney = function (amount, currencyCode) {
   return `${currencyLabel} ${formattedAmount}`;
 };
 
-function renderNavigation(userRole) {
-  const isAdmin = userRole === "admin";
-  const isAccountant = userRole === "accountant";
-  const isTeacher = userRole === "teacher";
-  const isStudent = userRole === "student";
-  const isLibrarian = userRole === "librarian";
-
-  if (isAdmin || isStudent || isTeacher || isAccountant) {
-    document.querySelectorAll(".exclude-librarian").forEach((el) => {
-      el.style.setProperty("display", "list-item", "important");
-    });
-  }
-
-  if (isAdmin || isLibrarian) {
-    document.querySelectorAll(".admin-librarian-only").forEach((el) => {
-      el.style.setProperty("display", "list-item", "important");
-    });
-  }
-
-  if (isAdmin) {
-    document.querySelectorAll(".admin-only").forEach((el) => {
-      el.style.setProperty("display", "list-item", "important");
-    });
-  }
-
-  if (isAdmin || isAccountant) {
-    document.querySelectorAll(".admin-accountant-only").forEach((el) => {
-      el.style.setProperty("display", "list-item", "important");
-    });
-  }
-
-  if (isAdmin || isTeacher) {
-    document.querySelectorAll(".admin-teacher-only").forEach((el) => {
-      el.style.setProperty("display", "list-item", "important");
-    });
-  }
-
-  if (isTeacher) {
-    document.querySelectorAll(".teacher-only").forEach((el) => {
-      el.style.setProperty("display", "list-item", "important");
-    });
-  }
-
-  if (isStudent) {
-    document.querySelectorAll(".student-only").forEach((el) => {
-      el.style.setProperty("display", "list-item", "important");
-    });
-  }
-
-  if (isTeacher || isStudent) {
-    document.querySelectorAll(".teacher-student-only").forEach((el) => {
-      el.style.setProperty("display", "list-item", "important");
-    });
-  }
+function renderNavigation() {
+  document.querySelectorAll(".admin-librarian-only").forEach((el) => {
+    el.style.setProperty("display", "list-item", "important");
+  });
 }
-
-const ADMIN_ONLY_PAGES = [
-  "subjects.html",
-  "department.html",
-  "academic-year.html",
-  "structures.html",
-  "classes.html",
-  "audit-logs.html",
-  "periods.html",
-  "assessments.html",
-  "semester.html",
-  "system-users.html",
-  "teacher-assignment.html",
-  "teachers.html",
-  "timetable.html",
-];
-
-const ADMIN_ACCOUNTANT_PAGES = [
-  "students.html",
-  "parent-invitations.html",
-  "finance.html",
-  "enrollment.html",
-];
-
-const PARENT_ONLY_PAGES = ["parent-dashboard.html", "parent-records.html"];
-
-const ADMIN_TEACHER_PAGES = [
-  "attendance.html",
-  "grades.html",
-  "student-report-cards.html",
-];
-
-const TEACHER_ONLY_PAGES = ["my-assignments.html"];
-
-const STUDENT_ONLY_PAGES = ["my-attendance.html"];
-
-const TEACHER_STUDENT_ONLY_PAGES = ["my-timetable.html"];
-
-const TEACHER_LIBRARIAN_ONLY_PAGES = ["library.html"];
-
-const EXCLUDE_LIBRARIAN_PAGE = ["academics.html"];
 
 window.DEFAULT_PROFILE_AVATAR =
   "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128' width='128' height='128'><circle cx='64' cy='64' r='64' fill='%23E4E6EB'/><circle cx='64' cy='46' r='22' fill='%23B0B3B8'/><path d='M24 112c0-22 18-40 40-40s40 18 40 40' fill='%23B0B3B8'/></svg>";
@@ -464,6 +373,19 @@ window.forceLogout = async function () {
     return `${CACHE_PREFIX}${page}:${userId}`;
   }
 
+  function currentStoredUserId() {
+    try {
+      for (let index = 0; index < localStorage.length; index += 1) {
+        const key = localStorage.key(index);
+        if (!key?.startsWith("sb-") || !key.endsWith("-auth-token")) continue;
+        const session = JSON.parse(localStorage.getItem(key) || "{}");
+        const userId = session?.user?.id || session?.currentSession?.user?.id;
+        if (userId) return userId;
+      }
+    } catch {}
+    return null;
+  }
+
   function readLast(page) {
     try {
       const userId =
@@ -472,6 +394,7 @@ window.forceLogout = async function () {
         localStorage.getItem(lastUserKey(page)) ||
         localStorage.getItem(`${LEGACY_CACHE_PREFIX}${page}:last-user`);
       if (!userId) return null;
+      if (userId !== currentStoredUserId()) return null;
       return read(page, userId);
     } catch (error) {
       console.warn(`Could not read the saved ${page} page:`, error);
@@ -570,6 +493,22 @@ window.forceLogout = async function () {
     }
   }
 
+  function clear(page, userId) {
+    if (!page) return;
+    try {
+      if (userId) {
+        const key = pageDataKey(page, userId);
+        window.thubDB?.deleteSync(window.thubDB.STORES.PAGE_CACHE, key);
+        window.thubDB?.deleteSync(window.thubDB.STORES.PAGE_CACHE, `${LEGACY_CACHE_PREFIX}${page}:${userId}`);
+        localStorage.removeItem(key);
+        localStorage.removeItem(`${LEGACY_CACHE_PREFIX}${page}:${userId}`);
+      }
+      clearLast(page);
+    } catch (error) {
+      console.warn(`Could not clear the saved ${page} page:`, error);
+    }
+  }
+
   function clearAll() {
     try {
       window.thubDB?.clearAll();
@@ -637,6 +576,7 @@ window.forceLogout = async function () {
     readAsync,
     readLastAsync,
     write,
+    clear,
     clearLast,
     clearAll,
   });
@@ -648,115 +588,82 @@ window.forceLogout = async function () {
     if (event === "SIGNED_OUT") clearAll();
   });
 })();
+
+// Add one consistent manual refresh action to librarian pages. A refresh clears
+// only the current page's snapshot plus cached Supabase reads, then reloads it.
+(function initLibrarianPageRefresh() {
+  const pageCacheKeys = {
+    "dashboard.html": ["dashboard"],
+    "books.html": ["books"],
+    "library.html": ["library"],
+    "library-reports.html": ["library-reports"],
+    "notifications.html": ["notifications"],
+    "my-profile.html": ["my-profile"],
+    "school-information.html": ["school-information"],
+  };
+
+  window.ensureLibrarianRefreshButton = function () {
+    if (
+      isLoginPage() ||
+      document.getElementById("librarianPageRefresh") ||
+      document.querySelector('main button[id^="refresh"], main button[aria-label*="Refresh"]')
+    ) return;
+    const header = document.querySelector("main .topbar, main .notifications-header, main .page-header, main header") ||
+      document.querySelector(".my-profiles-page .page-header, .settings-page .page-header");
+    if (!header) return;
+    const button = document.createElement("button");
+    button.type = "button";
+    button.id = "librarianPageRefresh";
+    button.className = "librarian-page-refresh";
+    button.title = "Load the latest data";
+    button.setAttribute("aria-label", "Refresh page data");
+    button.innerHTML = '<i class="fa-solid fa-rotate" aria-hidden="true"></i><span>Refresh</span>';
+    const adjacentActions = header.matches(".page-header") && header.nextElementSibling?.querySelector("button")
+      ? header.nextElementSibling
+      : null;
+    const actions = header.querySelector(".topbar-actions, .dashboard-topbar-actions, .header-actions") || adjacentActions;
+    (actions || header).appendChild(button);
+  };
+
+  document.addEventListener("click", async (event) => {
+    const button = event.target.closest("#librarianPageRefresh");
+    if (!button || button.disabled) return;
+    button.disabled = true;
+    button.classList.add("is-refreshing");
+    button.innerHTML = '<i class="fa-solid fa-rotate fa-spin" aria-hidden="true"></i><span>Refreshing</span>';
+    try {
+      const page = location.pathname.split("/").pop();
+      const { data } = await window.supabaseClient?.auth?.getSession?.() || {};
+      const userId = data?.session?.user?.id;
+      (pageCacheKeys[page] || []).forEach((key) => window.libraryPageCache?.clear(key, userId));
+      window.clearSupabaseReadCache?.();
+      location.reload();
+    } catch (error) {
+      console.error("Could not refresh librarian page data:", error);
+      button.disabled = false;
+      button.classList.remove("is-refreshing");
+      button.innerHTML = '<i class="fa-solid fa-rotate" aria-hidden="true"></i><span>Refresh</span>';
+    }
+  });
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", window.ensureLibrarianRefreshButton);
+  } else {
+    window.ensureLibrarianRefreshButton();
+  }
+})();
 async function checkPageAccess() {
-  const currentPage = window.location.pathname.split("/").pop();
-
-  const isAdminOnly = ADMIN_ONLY_PAGES.includes(currentPage);
-  const isAdminOrAccountantOnly = ADMIN_ACCOUNTANT_PAGES.includes(currentPage);
-  const isAdminOrTeacherOnly = ADMIN_TEACHER_PAGES.includes(currentPage);
-  const isTeacherOnly = TEACHER_ONLY_PAGES.includes(currentPage);
-  const isStudentOnly = STUDENT_ONLY_PAGES.includes(currentPage);
-  const isTeacherOrStudentOnly =
-    TEACHER_STUDENT_ONLY_PAGES.includes(currentPage);
-  const isAdminOrLibrarianOnly =
-    TEACHER_LIBRARIAN_ONLY_PAGES.includes(currentPage);
-  const isExcludeLibrarian = EXCLUDE_LIBRARIAN_PAGE.includes(currentPage);
-  const isParentOnly = PARENT_ONLY_PAGES.includes(currentPage);
-
-  const isProtectedPage =
-    isAdminOnly ||
-    isAdminOrAccountantOnly ||
-    isAdminOrTeacherOnly ||
-    isTeacherOnly ||
-    isStudentOnly ||
-    isAdminOrLibrarianOnly ||
-    isExcludeLibrarian ||
-    isParentOnly ||
-    isTeacherOrStudentOnly;
-
-  if (!isProtectedPage) {
-    return;
-  }
-
-  document.documentElement.style.visibility = "hidden";
-
-  if (!window.supabaseClient) {
-    window.location.replace("/index.html?error=service_unavailable");
-    return;
-  }
-
+  if (isLoginPage() || !window.supabaseClient) return;
   const authCtx = await window.getAuthContext();
-  const user = authCtx?.user;
-  const profile = authCtx?.profile;
-
-  if (!user) {
+  if (!authCtx?.user) {
     await window.forceLogout();
     return;
   }
-
-  const accountStatus = String(profile?.status || "").trim().toLowerCase();
+  const accountStatus = String(authCtx?.profile?.status || "active").trim().toLowerCase();
   if (accountStatus !== "active") {
     await window.forceLogout();
-    return;
   }
-
-  const role = profile?.role;
-
-  if (isParentOnly && role !== "parent") {
-    await window.forceLogout();
-    return;
-  }
-
-  if (isAdminOnly && role !== "admin") {
-    await window.forceLogout();
-    return;
-  }
-
-  if (isAdminOrAccountantOnly && role !== "admin" && role !== "accountant") {
-    await window.forceLogout();
-    return;
-  }
-
-  if (isAdminOrLibrarianOnly && role !== "admin" && role !== "librarian") {
-    await window.forceLogout();
-    return;
-  }
-
-  if (isAdminOrTeacherOnly && role !== "admin" && role !== "teacher") {
-    await window.forceLogout();
-    return;
-  }
-
-  if (isTeacherOnly && role !== "teacher") {
-    await window.forceLogout();
-    return;
-  }
-
-  if (isStudentOnly && role !== "student") {
-    await window.forceLogout();
-    return;
-  }
-
-  if (isTeacherOrStudentOnly && role !== "teacher" && role !== "student") {
-    await window.forceLogout();
-    return;
-  }
-
-  if (
-    isExcludeLibrarian &&
-    role !== "teacher" &&
-    role !== "student" &&
-    role !== "admin" &&
-    role !== "accountant"
-  ) {
-    await window.forceLogout();
-    return;
-  }
-
-  document.documentElement.style.visibility = "";
 }
-
-checkPageAccess();
 
 document.addEventListener("DOMContentLoaded", async () => {
   const menuToggle = document.getElementById("menuToggle");
@@ -935,10 +842,7 @@ window.addEventListener("pageshow", async (event) => {
       return;
     }
 
-    const currentPage = window.location.pathname.split("/").pop();
-    if (ADMIN_ONLY_PAGES.includes(currentPage) && profile?.role !== "admin") {
-      await window.forceLogout();
-    }
+    // Librarian-only app: no per-page role restrictions needed.
   }
 });
 

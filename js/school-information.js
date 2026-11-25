@@ -31,6 +31,7 @@ function restoreCachedSchoolInformation() {
     const cached = window.libraryPageCache?.readLast(SCHOOL_INFO_CACHE_PAGE);
     if (cached?.data) {
       originalSchoolData = { ...cached.data };
+      existingRecordId = cached.data.id || existingRecordId;
       populateSchoolForm(originalSchoolData);
       const loader = document.getElementById("formLoader");
       const form =
@@ -107,29 +108,9 @@ async function checkAdminAuth() {
   if (profileError) throw profileError;
 
   const role = String(profile?.role || "").trim().toLowerCase();
-  let isGraduatedStudent = false;
-  if (role === "student") {
-    let enrollmentQuery = window.supabaseClient
-      .from("student_enrollments")
-      .select("enrollment_status")
-      .eq("student_id", user.id);
-
-    if (profile.school_id) {
-      enrollmentQuery = enrollmentQuery.eq("school_id", profile.school_id);
-    }
-
-    const { data: enrollments, error: enrollmentError } = await enrollmentQuery;
-    if (enrollmentError) throw enrollmentError;
-    isGraduatedStudent = (enrollments || []).some((enrollment) =>
-      ["graduated", "transferred", "transfered"].includes(
-        String(enrollment.enrollment_status || "").trim().toLowerCase(),
-      ),
-    );
-  }
 
   return {
     isAdmin: role === "admin" && String(profile?.status || "active").toLowerCase() === "active",
-    isGraduatedStudent,
     profile,
     user,
   };
@@ -591,7 +572,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
 
-  restoreCachedSchoolInformation();
+  const schoolInfoRestored = restoreCachedSchoolInformation();
 
   const form =
     document.getElementById("schoolInformationForm") ||
@@ -599,7 +580,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     document.querySelector("form");
   const loader = document.getElementById("formLoader");
 
-  let access = { isAdmin: false, isGraduatedStudent: false, user: null };
+  let access = { isAdmin: false, user: null };
   try {
     access = await checkAdminAuth();
     schoolInformationUser = access.user;
@@ -611,21 +592,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (access.isAdmin) enableFormInputs(form);
   else disableFormInputs(form);
 
-  if (access.isGraduatedStudent) {
-    const page = document.getElementById("schoolInformationPage");
-    page?.classList.add("graduated-school-access");
-    if (form) {
-      form.style.display = "none";
-      form.classList.add("auth-ready");
-    }
-    if (loader) loader.style.display = "none";
-    showSchoolInformationMessage(
-      "School Information is unavailable because your enrollment is marked as graduated or transferred. Contact your school administrator if you think this is a mistake.",
-    );
-    return;
-  }
-
-  await loadSchoolProfile();
+  if (!schoolInfoRestored) await loadSchoolProfile();
 
   if (loader) loader.style.display = "none";
   if (form) form.classList.add("auth-ready");

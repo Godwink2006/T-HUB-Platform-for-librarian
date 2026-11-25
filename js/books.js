@@ -14,6 +14,19 @@ let booksUserId = "";
 let booksSchoolId = "";
 let booksCacheRestored = false;
 
+function getStoredBooksSessionUserId() {
+  try {
+    for (let index = 0; index < localStorage.length; index += 1) {
+      const key = localStorage.key(index);
+      if (!key?.startsWith("sb-") || !key.endsWith("-auth-token")) continue;
+      const session = JSON.parse(localStorage.getItem(key) || "{}");
+      const userId = session?.user?.id || session?.currentSession?.user?.id;
+      if (userId) return userId;
+    }
+  } catch {}
+  return null;
+}
+
 function readBooksCache() {
   if (!booksCacheKey) return null;
   try {
@@ -113,7 +126,7 @@ function restoreCachedBooksPage() {
           "null",
       );
     const savedUserId = savedAccess?.userId || savedAccess?.studentId;
-    if (!savedUserId) return false;
+    if (!savedUserId || savedUserId !== getStoredBooksSessionUserId()) return false;
 
     booksUserId = savedUserId;
     booksSchoolId = savedAccess.schoolId || "";
@@ -168,7 +181,7 @@ async function restoreCachedBooksPageAsync() {
     }
 
     const savedUserId = savedAccess?.userId || savedAccess?.studentId;
-    if (!savedUserId) return false;
+    if (!savedUserId || savedUserId !== getStoredBooksSessionUserId()) return false;
 
     booksUserId = savedUserId;
     booksSchoolId = savedAccess.schoolId || "";
@@ -313,31 +326,37 @@ async function initializeBooksPage(options = {}) {
 
   try {
     if (!window.supabaseClient) throw new Error("The database client is unavailable.");
-    const { data: authData, error: authError } = await window.supabaseClient.auth.getUser();
+    const { data: authData, error: authError } = await window.supabaseClient.auth.getSession();
     if (authError) throw authError;
-    if (!authData?.user?.id) {
+    const currentUser = authData?.session?.user;
+    if (!currentUser?.id) {
       const error = new Error("Your session has expired. Please sign in again.");
       error.status = 401;
       throw error;
     }
 
-    matchingCachedCatalog = booksCacheRestored && cachedUserId === authData.user.id;
+    matchingCachedCatalog = booksCacheRestored && cachedUserId === currentUser.id;
 
-    const { data: profile, error: profileError } = await window.supabaseClient
-      .from("profiles")
-      .select("id, role, school_id, full_name")
-      .eq("id", authData.user.id)
-      .maybeSingle();
-
-    if (profileError) throw profileError;
-
-    const role = String(profile?.role || "").trim().toLowerCase();
-    const isLibrarian = ["librarian", "admin", "super_admin", "staff"].includes(role);
-    if (profile && !isLibrarian) {
-      throw new Error("The library catalog is accessible to librarian and staff accounts only.");
+    if (matchingCachedCatalog && !forceCatalogRefresh) {
+      booksAccessVerified = true;
+      mainContent?.classList.remove("books-access-checking");
+      if (catalog) catalog.hidden = false;
+      updateBooksNextButton();
+      return;
     }
 
-    booksUserId = authData.user.id;
+    let profile = { school_id: cachedSchoolId };
+    if (!matchingCachedCatalog) {
+      const { data, error: profileError } = await window.supabaseClient
+        .from("profiles")
+        .select("school_id")
+        .eq("id", currentUser.id)
+        .maybeSingle();
+      if (profileError) throw profileError;
+      profile = data || profile;
+    }
+
+    booksUserId = currentUser.id;
     booksSchoolId = profile?.school_id || "";
     matchingCachedCatalog = matchingCachedCatalog && cachedSchoolId === booksSchoolId;
     booksCacheKey = `${BOOKS_CACHE_PREFIX}${booksUserId}:${booksSchoolId || "no-school"}`;
@@ -346,12 +365,6 @@ async function initializeBooksPage(options = {}) {
     saveBooksAccess();
     mainContent?.classList.remove("books-access-checking");
     if (catalog) catalog.hidden = false;
-
-    if (matchingCachedCatalog && !forceCatalogRefresh) {
-      saveBooksCache();
-      updateBooksNextButton();
-      return;
-    }
 
     await loadBookCatalog({
       preserveCurrent: forceCatalogRefresh && allCatalogBooks.length > 0,
@@ -563,7 +576,10 @@ document.addEventListener("DOMContentLoaded", () => {
     ?.addEventListener("click", () => loadBookCatalog({ append: true }));
   document
     .getElementById("refreshBooksCatalog")
-    ?.addEventListener("click", () => initializeBooksPage({ forceCatalogRefresh: true }));
+    ?.addEventListener("click", () => {
+      window.clearSupabaseReadCache?.();
+      initializeBooksPage({ forceCatalogRefresh: true });
+    });
 
   const booksThemeToggle = document.getElementById("booksThemeToggle");
   if (booksThemeToggle && !booksThemeToggle.dataset.themeBound) {

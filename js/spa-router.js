@@ -9,6 +9,7 @@
   const managedStyles = new Map();
   const inlineStyles = new Map();
   const SHARED_SCRIPTS = new Set([
+    "db.js",
     "supabase.js",
     "utils.js",
     "app-icons.js",
@@ -421,17 +422,24 @@
       }
       const targetStyles = await loadRouteStyles(targetDoc);
       pauseScope(activeScope);
-      swapPageBody(targetDoc);
-      pageSwapped = true;
-      document.body.className = targetDoc.body.className;
-      window.applySavedAppTheme?.();
-      document.title = targetDoc.title;
+      const isDark =
+        document.body.classList.contains("app-dark") ||
+        localStorage.getItem("tHubTheme") === "dark";
       activeView = { url: targetURL, safe: true };
       activeScope = createScope();
       activateStyles(targetDoc, targetStyles);
+      document.body.className = isDark
+        ? `${targetDoc.body.className} app-dark`.trim()
+        : targetDoc.body.className;
+      swapPageBody(targetDoc);
+      pageSwapped = true;
+      window.applySavedAppTheme?.();
+      window.ensureLibrarianRefreshButton?.();
+      document.title = targetDoc.title;
       updateActiveLink(targetURL, targetDoc);
       if (push) history.pushState({ spa: true, url: targetURL }, document.title, targetURL);
       await runPageScripts(targetDoc, activeScope);
+      window.ensureLibrarianRefreshButton?.();
       window.scrollTo(0, 0);
       closeSidebar();
     } catch (error) {

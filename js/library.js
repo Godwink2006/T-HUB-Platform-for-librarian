@@ -699,7 +699,6 @@ async function loadBooksTable(options = {}) {
 }
 
 const LIBRARY_CACHE_PAGE = "library";
-const LIBRARY_DEDICATED_CACHE_KEY = "thubLibraryInventory:cachedBooks:v1";
 
 function getLibraryActiveUserId() {
   for (const page of ["library", "dashboard", "books", "library-reports", "my-profile", "school-info"]) {
@@ -718,7 +717,7 @@ function getLibraryActiveUserId() {
       }
     }
   } catch {}
-  return "librarian";
+  return null;
 }
 
 function saveLibraryCache() {
@@ -731,13 +730,6 @@ function saveLibraryCache() {
     };
     const userId = getLibraryActiveUserId();
     window.libraryPageCache?.write(LIBRARY_CACHE_PAGE, userId, payload);
-    if (userId !== "librarian") {
-      window.libraryPageCache?.write(LIBRARY_CACHE_PAGE, "librarian", payload);
-    }
-    if (window.thubDB) {
-      window.thubDB.setSync(window.thubDB.STORES.BOOKS_CACHE, LIBRARY_DEDICATED_CACHE_KEY, payload);
-      window.thubDB.setSync(window.thubDB.STORES.KEYVAL, "thubLibrary:canDelete", String(canDeleteLibraryBooks));
-    }
   } catch (error) {
     console.warn("Could not save library inventory cache:", error);
   }
@@ -747,13 +739,6 @@ function restoreCachedLibraryPage() {
   try {
     const tableBody = document.getElementById("booksTableBody");
     if (!tableBody) return false;
-
-    const canDeleteVal =
-      window.thubDB?.getSync(window.thubDB.STORES.KEYVAL, "thubLibrary:canDelete") ||
-      localStorage.getItem("thubLibrary:canDelete");
-    if (canDeleteVal === "true") {
-      canDeleteLibraryBooks = true;
-    }
 
     let books = null;
     let hasMore = false;
@@ -770,30 +755,6 @@ function restoreCachedLibraryPage() {
       if (cachedActive?.data?.books && Array.isArray(cachedActive.data.books) && cachedActive.data.books.length > 0) {
         books = cachedActive.data.books;
         hasMore = cachedActive.data.hasMore === true;
-      }
-    }
-
-    if (!books) {
-      const cachedLib = window.libraryPageCache?.read(LIBRARY_CACHE_PAGE, "librarian");
-      if (cachedLib?.data?.books && Array.isArray(cachedLib.data.books) && cachedLib.data.books.length > 0) {
-        books = cachedLib.data.books;
-        hasMore = cachedLib.data.hasMore === true;
-      }
-    }
-
-    if (!books) {
-      const direct =
-        window.thubDB?.getSync(window.thubDB.STORES.BOOKS_CACHE, LIBRARY_DEDICATED_CACHE_KEY) ||
-        (() => {
-          try {
-            return JSON.parse(localStorage.getItem(LIBRARY_DEDICATED_CACHE_KEY) || "null");
-          } catch {
-            return null;
-          }
-        })();
-      if (direct?.books && Array.isArray(direct.books) && direct.books.length > 0) {
-        books = direct.books;
-        hasMore = direct.hasMore === true;
       }
     }
 
@@ -856,15 +817,7 @@ async function restoreCachedLibraryPageAsync() {
     let books = null;
     let hasMore = false;
 
-    if (window.thubDB) {
-      const direct = await window.thubDB.get(window.thubDB.STORES.BOOKS_CACHE, LIBRARY_DEDICATED_CACHE_KEY);
-      if (direct?.books && Array.isArray(direct.books) && direct.books.length > 0) {
-        books = direct.books;
-        hasMore = direct.hasMore === true;
-      }
-    }
-
-    if (!books && window.libraryPageCache?.readLastAsync) {
+    if (window.libraryPageCache?.readLastAsync) {
       const cached = await window.libraryPageCache.readLastAsync(LIBRARY_CACHE_PAGE);
       if (cached?.data?.books && Array.isArray(cached.data.books) && cached.data.books.length > 0) {
         books = cached.data.books;
@@ -2160,8 +2113,7 @@ document
 restoreCachedLibraryPage();
 
 function initLibraryPage() {
-  restoreCachedLibraryPage();
-  restoreCachedLibraryPageAsync();
+  const cachedInventoryAvailable = restoreCachedLibraryPage();
 
   const libraryThemeToggle = document.getElementById("libraryThemeToggle");
   if (libraryThemeToggle && !libraryThemeToggle.dataset.themeBound) {
@@ -2180,7 +2132,10 @@ function initLibraryPage() {
   document
     .getElementById("nextLibraryBooksPage")
     ?.addEventListener("click", () => loadBooksTable({ append: true }));
-  loadLibraryDeletePermission().finally(() => loadBooksTable());
+  Promise.resolve(cachedInventoryAvailable || restoreCachedLibraryPageAsync())
+    .then((hasCachedInventory) => loadLibraryDeletePermission().then(() => {
+      if (!hasCachedInventory) return loadBooksTable();
+    }));
 }
 
 if (document.readyState === "loading") {

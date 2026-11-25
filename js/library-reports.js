@@ -9,11 +9,14 @@ const LIBRARY_REPORTS_CACHE_PAGE = "library-reports";
 document.addEventListener("DOMContentLoaded", async () => {
   const summaryBody = document.getElementById("librarySummaryBody");
   const detailBody = document.getElementById("libraryDetailBody");
+  let allBooksData = [];
+  let restoredReport = null;
 
   // Restore cached report immediately so the user sees data with zero latency
   try {
     const cached = window.libraryPageCache?.readLast(LIBRARY_REPORTS_CACHE_PAGE);
     if (cached?.data?.displayBooks && cached.data.displayBooks.length > 0) {
+      restoredReport = cached.data;
       allBooksData = cached.data.allBooksData || cached.data.displayBooks;
       renderSummary(cached.data.displayBooks, cached.data.globals || {});
       renderDetails(cached.data.displayBooks);
@@ -32,10 +35,15 @@ document.addEventListener("DOMContentLoaded", async () => {
   const filterStatus = document.getElementById("filterStatus");
   const detailCount = document.getElementById("detailRecordCount");
 
-  let allBooksData = [];
-
   // Populate lookups
-  const lookups = await ReportsCommon.getLookups();
+  const lookups = restoredReport
+    ? {
+        departments: [...new Map(allBooksData
+          .filter((book) => book.department_id && book.departments?.name)
+          .map((book) => [book.department_id, { id: book.department_id, name: book.departments.name }]))
+          .values()],
+      }
+    : await ReportsCommon.getLookups();
   ReportsCommon.populateSelect(filterDepartment, lookups.departments, {
     placeholder: "All Departments",
     valueKey: "id",
@@ -44,16 +52,33 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // Attach change listeners
   [filterDepartment, filterStatus].forEach((el) => {
-    if (el) el.addEventListener("change", fetchAndRenderData);
+    if (el) el.addEventListener("change", () => {
+      if (restoredReport) {
+        let displayBooks = allBooksData;
+        if (filterDepartment?.value) {
+          displayBooks = displayBooks.filter((book) => String(book.department_id) === filterDepartment.value);
+        }
+        if (filterStatus?.value) {
+          displayBooks = displayBooks.filter((book) => {
+            if (filterStatus.value === "available") return book.availableCopies > 0;
+            if (filterStatus.value === "borrowed") return book.borrowedCopies > 0;
+            if (filterStatus.value === "overdue") return book.overdueCopies > 0;
+            if (filterStatus.value === "lost") return book.lostCopies > 0;
+            return true;
+          });
+        }
+        renderSummary(displayBooks, restoredReport.globals || {});
+        renderDetails(displayBooks);
+      } else {
+        fetchAndRenderData();
+      }
+    });
   });
 
-  // Initial Fetch
-  await fetchAndRenderData();
+  // Keep the saved report visible while cached query results are reused.
+  if (!restoredReport) await fetchAndRenderData();
 
   async function fetchAndRenderData() {
-    ReportsCommon.renderLoading(summaryBody, 7, "Loading library metrics...");
-    ReportsCommon.renderLoading(detailBody, 7, "Loading book catalog...");
-
     try {
       let query = client
         .from("books")

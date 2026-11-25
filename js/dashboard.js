@@ -216,7 +216,9 @@ async function loadDashboardLibrarianPhoto(userId) {
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
-  restoreCachedDashboard();
+  // Keep the restored dashboard in place on page entry. Fresh data is loaded
+  // only after the librarian uses the page Refresh control.
+  if (restoreCachedDashboard()) return;
 
   const announcementContainer = document.getElementById("announcementPreviewContainer");
   const count = document.getElementById("libraryUsersCount");

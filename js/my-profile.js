@@ -7,7 +7,6 @@ const DEFAULT_AVATAR =
   "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128' width='128' height='128'><circle cx='64' cy='64' r='64' fill='%23E4E6EB'/><circle cx='64' cy='46' r='22' fill='%23B0B3B8'/><path d='M24 112c0-22 18-40 40-40s40 18 40 40' fill='%23B0B3B8'/></svg>";
 
 let currentProfileData = null;
-let myProfileDetailsReadOnly = false;
 
 function getMyProfileErrorMessage(error, context = "profile", action = "update") {
   const code = String(error?.code || "").toLowerCase();
@@ -110,9 +109,9 @@ async function loadMyProfile(options = {}) {
   const refresh = options.refresh === true;
 
   try {
-    const { data, error: authError } = await supabaseClient.auth.getUser();
+    const { data, error: authError } = await supabaseClient.auth.getSession();
     if (authError) throw authError;
-    const user = data?.user;
+    const user = data?.session?.user;
 
     if (!user) {
       window.libraryPageCache?.clearLast(MY_PROFILE_CACHE_PAGE);
@@ -215,14 +214,6 @@ function compressImageToBlob(file, maxWidth = 800, quality = 0.7) {
 
 async function handleUpdateProfile(event) {
   if (event) event.preventDefault();
-  if (myProfileDetailsReadOnly) {
-      showToast(
-        "Graduated or transferred students cannot edit profile information.",
-        "error",
-      );
-    return;
-  }
-
   let user;
   try {
     const { data, error } = await supabaseClient.auth.getUser();
@@ -551,130 +542,17 @@ function validatePasswordRequirements(password) {
   return { isValid: true, message: "" };
 }
 
-document.addEventListener("DOMContentLoaded", async function () {
+// Librarian-only app: profile is always editable.
+document.addEventListener("DOMContentLoaded", function () {
   const saveBtn = document.getElementById("saveProfileInfo");
   if (!saveBtn) return;
   const profileSection = document.getElementById("profileInformationSection");
-  profileSection?.classList.remove("profile-information-editable");
-
-  try {
-    const { data, error: authError } = await supabaseClient.auth.getUser();
-    if (authError) throw authError;
-    const user = data?.user;
-
-    if (!user) {
-      showMyProfileError({ status: 401 }, "enrollment information", "load");
-      return;
-    }
-
-    const { data: profile, error: profileError } = await supabaseClient
-      .from("profiles")
-      .select("role, school_id")
-      .eq("id", user.id)
-      .single();
-    if (profileError) throw profileError;
-
-    if (String(profile?.role || "").trim().toLowerCase() !== "student") {
-      profileSection?.classList.add("profile-information-editable");
-      saveBtn.style.display = "flex";
-      return;
-    }
-
-    let enrollmentQuery = supabaseClient
-      .from("student_enrollments")
-      .select("enrollment_status")
-      .eq("student_id", user.id);
-    if (profile.school_id) {
-      enrollmentQuery = enrollmentQuery.eq("school_id", profile.school_id);
-    }
-    const { data: enrollment, error: dbError } = await enrollmentQuery;
-
-    if (dbError) {
-      showMyProfileError(dbError, "enrollment information", "load");
-      return;
-    }
-
-    const isRestrictedType = (enrollment || []).some((record) =>
-      ["graduated", "transferred", "transfered"].includes(
-        String(record.enrollment_status || "").trim().toLowerCase(),
-      ),
-    );
-
-    if (isRestrictedType) {
-      myProfileDetailsReadOnly = true;
-      const profileSection = document.getElementById("profileInformationSection");
-      profileSection?.classList.add("graduated-profile-readonly");
-
-      const notice = document.getElementById("profileInformationNotice");
-      if (notice) {
-        notice.textContent =
-          "Your enrollment is marked as graduated or transferred. Profile details are read-only; you can still change your password below.";
-        notice.hidden = false;
-      }
-
-      ["fullName", "emailAddress", "phoneNumber", "myProfilePhoto"].forEach((id) => {
-        const field = document.getElementById(id);
-        if (field) field.disabled = true;
-      });
-      saveBtn.style.display = "none";
-      document
-        .getElementById("resetProfileInfo")
-        ?.style.setProperty("display", "none", "important");
-      document
-        .getElementById("profilePhotoActions")
-        ?.style.setProperty("display", "none", "important");
-    } else {
-      profileSection?.classList.add("profile-information-editable");
-      saveBtn.style.display = "flex";
-    }
-  } catch (error) {
-    showMyProfileError(error, "enrollment information", "load");
-  }
+  profileSection?.classList.add("profile-information-editable");
+  saveBtn.style.display = "flex";
 });
 
-document.addEventListener("DOMContentLoaded", async () => {
+document.addEventListener("DOMContentLoaded", () => {
   const backBtn = document.getElementById("backBtn");
   if (!backBtn) return;
-
-  const urlParams = new URLSearchParams(window.location.search);
-  if (urlParams.get("from") === "parent") {
-    backBtn.onclick = () => {
-      window.location.href = "parent-dashboard.html";
-    };
-    return;
-  }
-
-  try {
-    const { data, error: authError } = await supabaseClient.auth.getUser();
-    if (authError) throw authError;
-    const user = data?.user;
-
-    if (user) {
-      const { data: profile, error } = await supabaseClient
-        .from("profiles")
-        .select("role")
-        .eq("id", user.id)
-        .single();
-      if (error) showMyProfileError(error, "profile", "load");
-
-      const role = profile?.role?.toLowerCase();
-
-      backBtn.onclick = () => {
-        if (role === "parent") {
-          window.location.replace("parent-dashboard.html"); // Prevents back-swipe
-        } else {
-          window.location.replace("settings.html");
-        }
-      };
-    } else {
-      backBtn.onclick = () => {
-        window.location.replace("settings.html");
-      };
-    }
-  } catch (err) {
-    showMyProfileError(err, "profile", "load");
-    backBtn.onclick = () => {
-      window.location.href = "settings.html";
-    };
-  }
+  backBtn.onclick = () => window.location.replace("settings.html");
 });
