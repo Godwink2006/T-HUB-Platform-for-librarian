@@ -12,10 +12,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   let allBooksData = [];
   let restoredReport = null;
 
-  // Restore cached report immediately so the user sees data with zero latency
+  // Wait for IndexedDB's warm-up, then restore this librarian's report snapshot.
   try {
-    const cached = window.libraryPageCache?.readLast(LIBRARY_REPORTS_CACHE_PAGE);
-    if (cached?.data?.displayBooks && cached.data.displayBooks.length > 0) {
+    await window.thubDBReady;
+    const cached = window.libraryPageCache?.readLast(LIBRARY_REPORTS_CACHE_PAGE) ||
+      await window.libraryPageCache?.readLastAsync(LIBRARY_REPORTS_CACHE_PAGE);
+    if (cached?.data && Array.isArray(cached.data.displayBooks)) {
       restoredReport = cached.data;
       allBooksData = cached.data.allBooksData || cached.data.displayBooks;
       renderSummary(cached.data.displayBooks, cached.data.globals || {});
@@ -25,58 +27,58 @@ document.addEventListener("DOMContentLoaded", async () => {
     console.warn("Could not restore cached library report:", error);
   }
 
-  const authCtx = await ReportsCommon.initAuth();
-  if (!authCtx) return;
-
-  const client = window.supabaseClient || supabaseClient;
-
   // DOM Elements
   const filterDepartment = document.getElementById("filterDepartment");
   const filterStatus = document.getElementById("filterStatus");
   const detailCount = document.getElementById("detailRecordCount");
 
-  // Populate lookups
-  const lookups = restoredReport
-    ? {
-        departments: [...new Map(allBooksData
-          .filter((book) => book.department_id && book.departments?.name)
-          .map((book) => [book.department_id, { id: book.department_id, name: book.departments.name }]))
-          .values()],
+  if (restoredReport) {
+    const departments = [...new Map(allBooksData
+      .filter((book) => book.department_id && book.departments?.name)
+      .map((book) => [book.department_id, { id: book.department_id, name: book.departments.name }]))
+      .values()];
+    ReportsCommon.populateSelect(filterDepartment, departments, {
+      placeholder: "All Departments",
+      valueKey: "id",
+      labelKey: "name",
+    });
+
+    const renderSavedReport = () => {
+      let displayBooks = allBooksData;
+      if (filterDepartment?.value) {
+        displayBooks = displayBooks.filter((book) => String(book.department_id) === filterDepartment.value);
       }
-    : await ReportsCommon.getLookups();
-  ReportsCommon.populateSelect(filterDepartment, lookups.departments, {
+      if (filterStatus?.value) {
+        displayBooks = displayBooks.filter((book) => {
+          if (filterStatus.value === "available") return book.availableCopies > 0;
+          if (filterStatus.value === "borrowed") return book.borrowedCopies > 0;
+          if (filterStatus.value === "overdue") return book.overdueCopies > 0;
+          if (filterStatus.value === "lost") return book.lostCopies > 0;
+          return true;
+        });
+      }
+      renderSummary(displayBooks, restoredReport.globals || {});
+      renderDetails(displayBooks);
+    };
+    [filterDepartment, filterStatus].forEach((el) => el?.addEventListener("change", renderSavedReport));
+    return;
+  }
+
+  const client = window.supabaseClient || supabaseClient;
+  const { data: sessionData, error: sessionError } = await client.auth.getSession();
+  const sessionUser = sessionData?.session?.user;
+  if (sessionError || !sessionUser) {
+    window.location.href = "/login.html";
+    return;
+  }
+  const authCtx = { user: sessionUser };
+  ReportsCommon.populateSelect(filterDepartment, [], {
     placeholder: "All Departments",
     valueKey: "id",
     labelKey: "name",
   });
-
-  // Attach change listeners
-  [filterDepartment, filterStatus].forEach((el) => {
-    if (el) el.addEventListener("change", () => {
-      if (restoredReport) {
-        let displayBooks = allBooksData;
-        if (filterDepartment?.value) {
-          displayBooks = displayBooks.filter((book) => String(book.department_id) === filterDepartment.value);
-        }
-        if (filterStatus?.value) {
-          displayBooks = displayBooks.filter((book) => {
-            if (filterStatus.value === "available") return book.availableCopies > 0;
-            if (filterStatus.value === "borrowed") return book.borrowedCopies > 0;
-            if (filterStatus.value === "overdue") return book.overdueCopies > 0;
-            if (filterStatus.value === "lost") return book.lostCopies > 0;
-            return true;
-          });
-        }
-        renderSummary(displayBooks, restoredReport.globals || {});
-        renderDetails(displayBooks);
-      } else {
-        fetchAndRenderData();
-      }
-    });
-  });
-
-  // Keep the saved report visible while cached query results are reused.
-  if (!restoredReport) await fetchAndRenderData();
+  [filterDepartment, filterStatus].forEach((el) => el?.addEventListener("change", fetchAndRenderData));
+  await fetchAndRenderData();
 
   async function fetchAndRenderData() {
     try {
@@ -108,10 +110,25 @@ document.addEventListener("DOMContentLoaded", async () => {
       const { data: books, error } = await query;
       if (error) throw error;
 
+      const departments = [...new Map((books || [])
+        .filter((book) => book.department_id && book.departments?.name)
+        .map((book) => [book.department_id, { id: book.department_id, name: book.departments.name }]))
+        .values()];
+      ReportsCommon.populateSelect(filterDepartment, departments, {
+        placeholder: "All Departments",
+        valueKey: "id",
+        labelKey: "name",
+      });
+
       if (!books || books.length === 0) {
         allBooksData = [];
         renderSummary([]);
         renderDetails([]);
+        if (authCtx?.user?.id) {
+          const emptySnapshot = { allBooksData: [], displayBooks: [], globals: {} };
+          restoredReport = emptySnapshot;
+          window.libraryPageCache?.write(LIBRARY_REPORTS_CACHE_PAGE, authCtx.user.id, emptySnapshot);
+        }
         return;
       }
 

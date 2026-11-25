@@ -444,12 +444,18 @@ window.forceLogout = async function () {
     const syncResult = readLast(page);
     if (syncResult) return syncResult;
     try {
+      let activeUserId = currentStoredUserId();
+      if (!activeUserId && window.supabaseClient?.auth?.getSession) {
+        const { data } = await window.supabaseClient.auth.getSession();
+        activeUserId = data?.session?.user?.id || null;
+      }
+      if (!activeUserId) return null;
       if (window.thubDB) {
         let userId = await window.thubDB.get(window.thubDB.STORES.PAGE_CACHE, lastUserKey(page));
         if (!userId) {
           userId = await window.thubDB.get(window.thubDB.STORES.PAGE_CACHE, `${LEGACY_CACHE_PREFIX}${page}:last-user`);
         }
-        if (userId) {
+        if (userId && (typeof userId === "string" ? userId : userId.value || userId) === activeUserId) {
           return await readAsync(page, typeof userId === "string" ? userId : userId.value || userId);
         }
       }

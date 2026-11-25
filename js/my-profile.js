@@ -120,12 +120,13 @@ async function loadMyProfile(options = {}) {
     }
 
     const cached = window.libraryPageCache?.read(MY_PROFILE_CACHE_PAGE, user.id);
-    if (cached?.data && !refresh) {
+    const savedProfile = cached || await window.libraryPageCache?.readAsync(MY_PROFILE_CACHE_PAGE, user.id);
+    if (savedProfile?.data && !refresh) {
       currentProfileData = {
-        fullName: cached.data.fullName || "",
-        email: cached.data.email || "",
-        phone: cached.data.phone || "",
-        photoUrl: cached.data.photoUrl || DEFAULT_AVATAR,
+        fullName: savedProfile.data.fullName || "",
+        email: savedProfile.data.email || "",
+        phone: savedProfile.data.phone || "",
+        photoUrl: savedProfile.data.photoUrl || DEFAULT_AVATAR,
       };
       populateProfileForm(currentProfileData);
       checkProfileChanges();

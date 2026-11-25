@@ -87,9 +87,11 @@ function renderDashboardData(data) {
   }
 }
 
-function restoreCachedDashboard() {
+async function restoreCachedDashboard() {
   try {
-    const cached = window.libraryPageCache?.readLast(DASHBOARD_CACHE_PAGE);
+    await window.thubDBReady;
+    const cached = window.libraryPageCache?.readLast(DASHBOARD_CACHE_PAGE) ||
+      await window.libraryPageCache?.readLastAsync(DASHBOARD_CACHE_PAGE);
     if (cached?.data) {
       renderDashboardData(cached.data);
       return true;
@@ -218,14 +220,17 @@ async function loadDashboardLibrarianPhoto(userId) {
 document.addEventListener("DOMContentLoaded", async () => {
   // Keep the restored dashboard in place on page entry. Fresh data is loaded
   // only after the librarian uses the page Refresh control.
-  if (restoreCachedDashboard()) return;
+  if (await restoreCachedDashboard()) return;
 
   const announcementContainer = document.getElementById("announcementPreviewContainer");
   const count = document.getElementById("libraryUsersCount");
   const subtext = document.getElementById("libraryUsersSubtext");
 
   try {
-    const authContext = await window.getAuthContext();
+    const authContext = await Promise.race([
+      window.getAuthContext(),
+      new Promise((resolve) => setTimeout(() => resolve(null), 10000)),
+    ]);
     const schoolId = authContext?.profile?.school_id;
     if (!schoolId) throw new Error("Your account is not linked to a school.");
 
@@ -234,13 +239,41 @@ document.addEventListener("DOMContentLoaded", async () => {
       return null;
     });
 
-    const [userCountResult, metricsResult, announcementsResult, librarianResult] =
-      await Promise.allSettled([
+    const dashboardLoads = Promise.allSettled([
         loadLibraryUserCount(schoolId),
         loadLibraryMetrics(schoolId),
         loadLibraryAnnouncements(schoolId, authContext.profile.role),
         librarianPromise,
       ]);
+    const timeout = new Promise((resolve) => setTimeout(() => resolve(null), 12000));
+    const loadResults = await Promise.race([dashboardLoads, timeout]);
+
+    if (!loadResults) {
+      if (count) count.textContent = "—";
+      if (subtext) subtext.textContent = "Data unavailable. Use Refresh to try again.";
+      ["dashboardBookTitles", "dashboardBorrowed", "dashboardReturned"].forEach((id) => {
+        const value = document.getElementById(`${id}Count`);
+        const detail = document.getElementById(`${id}Subtext`);
+        if (value) value.textContent = "—";
+        if (detail) detail.textContent = "Data unavailable. Use Refresh to try again.";
+      });
+      if (announcementContainer) {
+        renderDashboardAnnouncements(announcementContainer, [], authContext.profile.role);
+      }
+      const unavailableSnapshot = {
+        role: authContext.profile?.role || "librarian",
+        schoolId,
+        userCount: "—",
+        userSubtext: "Data unavailable. Use Refresh to try again.",
+        metrics: Object.fromEntries(["dashboardBookTitles", "dashboardBorrowed", "dashboardReturned"]
+          .map((id) => [id, { count: "—", detail: "Data unavailable. Use Refresh to try again." }])),
+        announcements: [],
+      };
+      if (authContext.user?.id) window.libraryPageCache?.write(DASHBOARD_CACHE_PAGE, authContext.user.id, unavailableSnapshot);
+      return;
+    }
+
+    const [userCountResult, metricsResult, announcementsResult, librarianResult] = loadResults;
 
     const dashboardSnapshot = {
       role: authContext.profile?.role || "librarian",
@@ -253,7 +286,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     } else if (userCountResult.status === "rejected") {
       console.error("Could not count school profiles:", userCountResult.reason);
       if (count && count.textContent === "—") count.textContent = "—";
-      if (subtext && subtext.textContent === "Loading user count…") subtext.textContent = "User count is unavailable.";
+      if (subtext) subtext.textContent = "Use Refresh to try loading the count again.";
+      dashboardSnapshot.userCount = "—";
+      dashboardSnapshot.userSubtext = "Use Refresh to try loading the count again.";
     }
 
     if (metricsResult.status === "fulfilled" && metricsResult.value) {
@@ -264,6 +299,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       dashboardSnapshot.announcements = announcementsResult.value;
     } else if (announcementsResult.status === "rejected" && announcementContainer) {
       console.error("Could not load library announcements:", announcementsResult.reason);
+      dashboardSnapshot.announcements = [];
       if (!announcementContainer.querySelector(".announcement-item.dashboard-announcement")) {
         announcementContainer.innerHTML = `
           <div class="announcement-item empty-state">
@@ -284,12 +320,18 @@ document.addEventListener("DOMContentLoaded", async () => {
   } catch (error) {
     console.error("Could not load the library dashboard:", error);
     if (count && count.textContent === "—") count.textContent = "—";
-    if (subtext && subtext.textContent === "Loading user count…") subtext.textContent = "User count is unavailable.";
+    if (subtext) subtext.textContent = "Use Refresh to try loading the count again.";
+    ["dashboardBookTitles", "dashboardBorrowed", "dashboardReturned"].forEach((id) => {
+      const value = document.getElementById(`${id}Count`);
+      const detail = document.getElementById(`${id}Subtext`);
+      if (value) value.textContent = "—";
+      if (detail) detail.textContent = "Use Refresh to try loading data again.";
+    });
     if (announcementContainer && !announcementContainer.querySelector(".announcement-item.dashboard-announcement")) {
       announcementContainer.innerHTML = `
         <div class="announcement-item empty-state">
-          <h4>Announcements are unavailable</h4>
-          <p>Please try again later.</p>
+          <h4>Could not load announcements</h4>
+          <p>Use Refresh to try again.</p>
         </div>
       `;
     }

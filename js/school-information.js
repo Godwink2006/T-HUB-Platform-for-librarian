@@ -1,6 +1,19 @@
-let originalSchoolData = {};
 let schoolInformationUser = null;
 const SCHOOL_INFO_CACHE_PAGE = "school-information";
+
+function setValue(id, value) {
+  const field = document.getElementById(id);
+  if (!field) return;
+  const nextValue = value == null ? "" : String(value);
+  if (field.tagName === "SELECT") {
+    const matchingOption = [...field.options].find((option) =>
+      option.value === nextValue || option.textContent.trim() === nextValue,
+    );
+    field.value = matchingOption?.value || "";
+    return;
+  }
+  field.value = nextValue;
+}
 
 function populateSchoolForm(data) {
   if (!data) return;
@@ -26,13 +39,13 @@ function populateSchoolForm(data) {
   setValue("educationLevel", data.education_level);
 }
 
-function restoreCachedSchoolInformation() {
+async function restoreCachedSchoolInformation() {
   try {
-    const cached = window.libraryPageCache?.readLast(SCHOOL_INFO_CACHE_PAGE);
+    await window.thubDBReady;
+    const cached = window.libraryPageCache?.readLast(SCHOOL_INFO_CACHE_PAGE) ||
+      await window.libraryPageCache?.readLastAsync(SCHOOL_INFO_CACHE_PAGE);
     if (cached?.data) {
-      originalSchoolData = { ...cached.data };
-      existingRecordId = cached.data.id || existingRecordId;
-      populateSchoolForm(originalSchoolData);
+      populateSchoolForm(cached.data);
       const loader = document.getElementById("formLoader");
       const form =
         document.getElementById("schoolInformationForm") ||
@@ -83,37 +96,17 @@ async function compressImageToBlob(file, maxWidth = 800, quality = 0.7) {
   });
 }
 
-let existingRecordId = null;
-
-async function checkAdminAuth() {
-  if (!window.supabaseClient) {
-    throw new Error("The database client is unavailable.");
-  }
-
-  const { data, error: userError } = await window.supabaseClient.auth.getUser();
-  if (userError) throw userError;
-  const user = data?.user;
-
+async function getSchoolInformationUser() {
+  if (!window.supabaseClient) throw new Error("The database client is unavailable.");
+  const { data, error } = await window.supabaseClient.auth.getSession();
+  if (error) throw error;
+  const user = data?.session?.user;
   if (!user) {
-    const error = new Error("Your session has expired. Sign in again.");
-    error.status = 401;
-    throw error;
+    const sessionError = new Error("Your session has expired. Sign in again.");
+    sessionError.status = 401;
+    throw sessionError;
   }
-
-  const { data: profile, error: profileError } = await window.supabaseClient
-    .from("profiles")
-    .select("role, school_id, status")
-    .eq("id", user.id)
-    .single();
-  if (profileError) throw profileError;
-
-  const role = String(profile?.role || "").trim().toLowerCase();
-
-  return {
-    isAdmin: role === "admin" && String(profile?.status || "active").toLowerCase() === "active",
-    profile,
-    user,
-  };
+  return user;
 }
 
 function showSchoolInformationMessage(message, type = "info") {
@@ -151,83 +144,21 @@ function schoolInformationErrorMessage(error, action = "load") {
     : "School information could not be loaded. Refresh the page or contact your school administrator.";
 }
 
-function enableFormInputs(form) {
+function makeSchoolInformationReadOnly(form) {
   if (!form) return;
-
-  const inputs = form.querySelectorAll("input, select, textarea, button");
-  inputs.forEach((input) => {
-    input.disabled = false;
+  form.querySelectorAll('input:not([type="file"]), textarea').forEach((field) => {
+    field.readOnly = true;
+    field.setAttribute("aria-readonly", "true");
   });
-
-  const buttonsToShow = form.querySelectorAll(
-    '.save-btn, .reset-btn, button[type="submit"], button[type="reset"]',
-  );
-  buttonsToShow.forEach((btn) => {
-    btn.style.display = "";
+  form.querySelectorAll("select, input[type=file]").forEach((field) => {
+    field.disabled = true;
   });
-
-  const logoWrapper = document.getElementById("changeSchoolLogo");
-  if (logoWrapper) {
-    logoWrapper.style.display = "";
-  }
-
-  const changeLogoBtn = document.querySelector(
-    '.upload-btn, label[for="schoolLogo"]',
-  );
-  if (changeLogoBtn) {
-    changeLogoBtn.style.display = "";
-  }
-}
-
-function disableFormInputs(form) {
-  if (!form) return;
-
-  const inputs = form.querySelectorAll("input, select, textarea, button");
-  inputs.forEach((input) => {
-    input.disabled = true;
-  });
-
-  const buttonsToHide = form.querySelectorAll(
-    '.save-btn, .reset-btn, button[type="submit"], button[type="reset"]',
-  );
-  buttonsToHide.forEach((btn) => {
-    btn.style.display = "none";
-  });
-
-  const logoWrapper = document.getElementById("changeSchoolLogo");
-  if (logoWrapper) {
-    logoWrapper.style.display = "none";
-  }
-
-  const changeLogoBtn = document.querySelector(
-    '.upload-btn, label[for="schoolLogo"]',
-  );
-  if (changeLogoBtn) {
-    changeLogoBtn.style.display = "none";
-  }
-}
-
-async function initFormProtection() {
-  const form =
-    document.getElementById("schoolProfileForm") ||
-    document.querySelector("form");
-  const loader = document.getElementById("formLoader");
-
-  if (!form) return;
-
-  const { isAdmin } = await checkAdminAuth();
-
-  if (isAdmin) {
-    enableFormInputs(form);
-  } else {
-    disableFormInputs(form);
-  }
-
-  if (loader) {
-    loader.style.display = "none";
-  }
-
-  form.classList.add("auth-ready");
+  form.querySelectorAll('button[type="submit"], button[type="reset"], #changeSchoolLogo, label[for="schoolLogo"]')
+    .forEach((control) => {
+      control.hidden = true;
+      control.disabled = true;
+    });
+  form.addEventListener("submit", (event) => event.preventDefault());
 }
 
 async function loadSchoolProfile() {
@@ -256,307 +187,18 @@ async function loadSchoolProfile() {
     if (error) throw error;
 
     if (data) {
-      existingRecordId = data.id;
       populateSchoolForm(data);
       if (user?.id) {
         window.libraryPageCache?.write(SCHOOL_INFO_CACHE_PAGE, user.id, data);
       }
     }
 
-    originalSchoolData = { ...data };
   } catch (err) {
     console.error("Error loading school profile:", err);
     showSchoolInformationMessage(schoolInformationErrorMessage(err), "error");
   }
 }
 
-async function handleFormSubmit() {
-  const formData = {
-    school_name: getValue("schoolName").trim(),
-    school_motto: getValue("schoolMotto").trim(),
-    email: getValue("schoolEmail").trim(),
-    alternative_phone: getValue("alternativePhone").trim(),
-    website: getValue("schoolWebsite").trim(),
-    address: getValue("schoolAddress").trim(),
-    city: getValue("city")
-      ? getValue("city").trim()
-      : getValue("schoolCity").trim(),
-    country: getValue("country")
-      ? getValue("country").trim()
-      : getValue("schoolCountry").trim(),
-    principal_name: getValue("principalName").trim(),
-    principal_email: getValue("principalEmail").trim(),
-    principal_phone: getValue("principalPhone").trim(),
-    school_type: getValue("schoolType"),
-    education_level: getValue("educationLevel"),
-  };
-
-  const logoInput = document.getElementById("schoolLogo");
-  const logoFile = logoInput?.files[0];
-
-  let hasChanges = Boolean(logoFile);
-  const changedFields = [];
-  if (logoFile) changedFields.push("School Logo");
-
-  for (const key in formData) {
-    const currentValue = formData[key] ?? "";
-    const originalValue = originalSchoolData[key] ?? "";
-
-    if (currentValue.toString().trim() !== originalValue.toString().trim()) {
-      hasChanges = true;
-
-      changedFields.push(key.replace(/_/g, " "));
-    }
-  }
-
-  if (!hasChanges) {
-    showToast("No changes detected.", "info");
-    return;
-  }
-
-  if (
-    !formData.school_name ||
-    !formData.email ||
-    !formData.address ||
-    !formData.city ||
-    !formData.country ||
-    !formData.principal_name ||
-    !formData.principal_email ||
-    !formData.principal_phone ||
-    !formData.school_type ||
-    !formData.education_level
-  ) {
-    showToast("Please fill out all required fields.", "error");
-    return;
-  }
-
-  const gmailRegex = /^[a-zA-Z0-9._%+-]+@gmail\.com$/;
-  if (!gmailRegex.test(formData.email)) {
-    showToast("School email must end with @gmail.com", "error");
-    return;
-  }
-
-  if (!gmailRegex.test(formData.principal_email)) {
-    showToast("Principal email must end with @gmail.com", "error");
-    return;
-  }
-
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (
-    !emailRegex.test(formData.email) ||
-    !emailRegex.test(formData.principal_email)
-  ) {
-    showToast(
-      "Please enter valid email addresses for the school and principal.",
-      "error",
-    );
-    return;
-  }
-
-  const phoneRegex = /^(077|088)\d{7}$/;
-  if (
-    formData.alternative_phone &&
-    !phoneRegex.test(formData.alternative_phone)
-  ) {
-    showToast(
-      "Alternative phone number must start with 077 or 088 and contain 10 digits.",
-      "error",
-    );
-    return;
-  }
-
-  if (!phoneRegex.test(formData.principal_phone)) {
-    showToast(
-      "Principal phone number must start with 077 or 088 and contain 10 digits.",
-      "error",
-    );
-    return;
-  }
-
-  if (formData.country.toLowerCase() !== "liberia") {
-    showToast("Country must be Liberia.", "error");
-    return;
-  }
-
-  if (formData.website && !formData.website.startsWith("https://")) {
-    showToast("School website URL must start with https://", "error");
-    return;
-  }
-
-  const saveBtn = document.querySelector(
-    '#schoolInformationForm .save-btn, #schoolInformationForm button[type="submit"]',
-  );
-  let uploadedLogoPath = null;
-
-  try {
-    if (saveBtn) {
-      saveBtn.disabled = true;
-      saveBtn.textContent = "Saving...";
-    }
-
-    if (logoFile && existingRecordId) {
-      const compressedBlob = await compressImageToBlob(logoFile, 800, 0.7);
-
-      // Keep each uploaded logo at its own path so audit history can still
-      // display the previous image after a later logo change.
-      const versionId =
-        globalThis.crypto?.randomUUID?.() ||
-        `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-      const filePath = `school-logos/${existingRecordId}/${versionId}.jpg`;
-
-      const { error: uploadError } = await supabaseClient.storage
-        .from("avatars")
-        .upload(filePath, compressedBlob, {
-          contentType: "image/jpeg",
-          upsert: false,
-        });
-
-      if (uploadError) throw uploadError;
-      uploadedLogoPath = filePath;
-
-      const { data: publicUrlData } = supabaseClient.storage
-        .from("avatars")
-        .getPublicUrl(filePath);
-
-      formData.logo_url = `${publicUrlData.publicUrl}?t=${Date.now()}`;
-    }
-
-    let savedRecord;
-    let error;
-    const isNewRecord = !existingRecordId;
-
-    if (existingRecordId) {
-      const { data, error: updateErr } = await supabaseClient
-        .from("schools")
-        .update({ ...formData, updated_at: new Date().toISOString() })
-        .eq("id", existingRecordId)
-        .select()
-        .maybeSingle();
-
-      error = updateErr;
-      savedRecord = data;
-    } else {
-      const { data, error: insertErr } = await supabaseClient
-        .from("schools")
-        .insert([formData])
-        .select()
-        .single();
-
-      error = insertErr;
-      savedRecord = data;
-    }
-
-    if (error) throw error;
-
-    if (existingRecordId && !savedRecord) {
-      if (uploadedLogoPath) {
-        const { error: cleanupError } = await supabaseClient.storage
-          .from("avatars")
-          .remove([uploadedLogoPath]);
-        if (cleanupError) {
-          console.error("Could not remove the unused school logo upload:", cleanupError);
-        }
-        uploadedLogoPath = null;
-      }
-      showToast(
-        "School information was not saved. This school may be inactive or your account may not have permission to update it.",
-        "error",
-      );
-      return;
-    }
-
-    if (savedRecord) {
-      existingRecordId = savedRecord.id;
-
-      originalSchoolData = { ...savedRecord };
-      uploadedLogoPath = null;
-    }
-
-    if (logoInput) {
-      logoInput.value = "";
-    }
-
-    showToast("School information saved successfully!", "success");
-
-    if (typeof logActivity === "function" && savedRecord) {
-      const schoolId = savedRecord.id;
-      let activityMessage = "School information updated";
-
-      if (isNewRecord) {
-        activityMessage = `School profile initialized: ${savedRecord.school_name || "New School"}`;
-      } else if (changedFields.length > 0) {
-        const formattedFields = changedFields
-          .map((f) => f.charAt(0).toUpperCase() + f.slice(1))
-          .join(", ");
-        activityMessage = `School details updated: ${formattedFields}`;
-      }
-
-      await logActivity(schoolId, activityMessage, "purple", "Everyone");
-    }
-  } catch (err) {
-    console.error("Error saving profile:", err);
-
-    if (uploadedLogoPath) {
-      const { error: cleanupError } = await supabaseClient.storage
-        .from("avatars")
-        .remove([uploadedLogoPath]);
-      if (cleanupError) {
-        console.error("Could not remove the unused school logo upload:", cleanupError);
-      }
-    }
-
-    showSchoolInformationMessage(schoolInformationErrorMessage(err, "save"), "error");
-  } finally {
-    if (saveBtn) {
-      saveBtn.disabled = false;
-      saveBtn.textContent = "Save Changes";
-    }
-  }
-}
-
-function getValue(id) {
-  const el = document.getElementById(id);
-  return el ? el.value : "";
-}
-
-function setValue(id, val) {
-  const el = document.getElementById(id);
-  if (el && val !== null && val !== undefined) {
-    el.value = val;
-  }
-}
-
-function resetToOriginalData() {
-  if (!originalSchoolData || Object.keys(originalSchoolData).length === 0) {
-    return;
-  }
-
-  setValue("schoolName", originalSchoolData.school_name);
-  setValue("schoolMotto", originalSchoolData.school_motto);
-  setValue("schoolEmail", originalSchoolData.email);
-  setValue("alternativePhone", originalSchoolData.alternative_phone);
-  setValue("schoolWebsite", originalSchoolData.website);
-  setValue("schoolAddress", originalSchoolData.address);
-  setValue("schoolCity", originalSchoolData.city);
-  setValue("schoolCountry", originalSchoolData.country);
-
-  setValue("principalName", originalSchoolData.principal_name);
-  setValue("principalEmail", originalSchoolData.principal_email);
-  setValue("principalPhone", originalSchoolData.principal_phone);
-
-  setValue("schoolType", originalSchoolData.school_type);
-  setValue("educationLevel", originalSchoolData.education_level);
-
-  const logoInput = document.getElementById("schoolLogo");
-  if (logoInput) {
-    logoInput.value = "";
-  }
-
-  const logoImg = document.getElementById("schoolLogoPreview");
-  if (logoImg && originalSchoolData.logo_url) {
-    logoImg.src = originalSchoolData.logo_url;
-  }
-}
 document.addEventListener("DOMContentLoaded", async () => {
   const schoolInfoThemeToggle = document.getElementById("schoolInfoThemeToggle");
   if (schoolInfoThemeToggle && !schoolInfoThemeToggle.dataset.themeBound) {
@@ -572,7 +214,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
 
-  const schoolInfoRestored = restoreCachedSchoolInformation();
+  const schoolInfoRestored = await restoreCachedSchoolInformation();
 
   const form =
     document.getElementById("schoolInformationForm") ||
@@ -580,50 +222,16 @@ document.addEventListener("DOMContentLoaded", async () => {
     document.querySelector("form");
   const loader = document.getElementById("formLoader");
 
-  let access = { isAdmin: false, user: null };
   try {
-    access = await checkAdminAuth();
-    schoolInformationUser = access.user;
+    schoolInformationUser = await getSchoolInformationUser();
   } catch (error) {
-    console.error("Could not determine School Information access:", error);
+    console.error("Could not load School Information account:", error);
     showSchoolInformationMessage(schoolInformationErrorMessage(error), "error");
   }
 
-  if (access.isAdmin) enableFormInputs(form);
-  else disableFormInputs(form);
-
   if (!schoolInfoRestored) await loadSchoolProfile();
 
+  makeSchoolInformationReadOnly(form);
   if (loader) loader.style.display = "none";
   if (form) form.classList.add("auth-ready");
-
-  if (form && access.isAdmin) {
-    form.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      await handleFormSubmit();
-    });
-
-    form.addEventListener("reset", (e) => {
-      e.preventDefault();
-      resetToOriginalData();
-    });
-  }
-
-  const logoInput = document.getElementById("schoolLogo");
-  const logoPreview = document.getElementById("schoolLogoPreview");
-
-  if (logoInput && logoPreview) {
-    logoInput.addEventListener("change", (event) => {
-      const file = event.target.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          logoPreview.src = e.target.result;
-        };
-        reader.readAsDataURL(file);
-      } else {
-        logoPreview.src = originalSchoolData.logo_url || "";
-      }
-    });
-  }
 });
