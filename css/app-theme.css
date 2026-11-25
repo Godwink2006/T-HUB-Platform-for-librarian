@@ -40,17 +40,32 @@ body.app-dark :is(h1, h2, h3, h4, h5, h6) {
 }
 
 body.app-dark :is(.sidebar, aside.sidebar) {
-  background: #000;
-  border-color: #333;
+  background: #000000 !important;
+  border-color: #27272a !important;
+}
+
+body.app-dark .sidebar-school-name {
+  background: #18181b !important;
+  color: #cbd5e1 !important;
+  border: 1px solid #27272a !important;
+}
+
+body.app-dark .menu li a {
+  color: #a1a1aa !important;
 }
 
 body.app-dark .menu li.active a {
-  background: #222;
-  color: #fff;
+  background: #27272a !important;
+  color: #ffffff !important;
+}
+
+body.app-dark .menu li.active a i {
+  color: #60a5fa !important;
 }
 
 body.app-dark .menu li a:hover {
-  background: #222;
+  background: #18181b !important;
+  color: #ffffff !important;
 }
 
 body.app-dark :is(.topbar, .page-header, .header-section, .notifications-header) {
@@ -66,7 +81,8 @@ body.app-dark :is(
     .table-container,
     .selected-student-panel,
     .children-section,
-    .parent-record-panel
+    .parent-record-panel,
+    .form-section
   ) {
   background-color: #111;
   border-color: #333;

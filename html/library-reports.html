@@ -15,6 +15,7 @@
     <title>Library Reports - T-HUB</title>
     <link rel="stylesheet" href="/css/library-reports.css" />
     <link rel="stylesheet" href="/css/utils.css" />
+    <link rel="stylesheet" href="/css/app-theme.css" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -72,13 +73,24 @@
             <p>Library book inventory, active borrowings, return statistics, and overdue tracking.</p>
           </div>
 
-          <button
-            onclick="window.location.href = 'dashboard.html'"
-            class="back-librarys-report-btn"
-          >
-            <i class="fa-solid fa-chevron-left"></i>
-            Back
-          </button>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <button
+              id="reportsThemeToggle"
+              class="app-theme-toggle back-librarys-report-btn"
+              type="button"
+              aria-label="Switch theme"
+            >
+              <i class="fa-solid fa-moon" aria-hidden="true"></i>
+              <span>Theme</span>
+            </button>
+            <button
+              onclick="window.location.href = 'dashboard.html'"
+              class="back-librarys-report-btn"
+            >
+              <i class="fa-solid fa-chevron-left"></i>
+              Back
+            </button>
+          </div>
         </header>
 
         <section class="toolbar">

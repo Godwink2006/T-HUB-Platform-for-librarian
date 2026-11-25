@@ -401,6 +401,20 @@ function validateProfileInputs(fullName, email, phone) {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  const profileThemeToggle = document.getElementById("profileThemeToggle");
+  if (profileThemeToggle && !profileThemeToggle.dataset.themeBound) {
+    profileThemeToggle.dataset.themeBound = "true";
+    profileThemeToggle.addEventListener("click", () => {
+      const dark = !document.body.classList.contains("app-dark");
+      if (typeof window.setAppTheme === "function") {
+        window.setAppTheme(dark);
+      } else {
+        document.body.classList.toggle("app-dark", dark);
+        localStorage.setItem("tHubTheme", dark ? "dark" : "light");
+      }
+    });
+  }
+
   populateCachedMyProfile();
   loadMyProfile();
 

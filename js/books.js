@@ -1,15 +1,14 @@
 let allCatalogBooks = [];
-const BOOKS_PAGE_SIZE = 30;
+const BOOKS_PAGE_SIZE = 12;
 const BOOKS_CACHE_PREFIX = "thubLibraryBooksCatalog:v2:";
-const LEGACY_BOOKS_CACHE_PREFIX = "thubStudentBooksCatalog:v2:";
 const BOOKS_LAST_ACCESS_KEY = "thubLibraryBooksAccess:v1";
+const LEGACY_BOOKS_CACHE_PREFIX = "thubStudentBooksCatalog:v2:";
 const LEGACY_BOOKS_LAST_ACCESS_KEY = "thubStudentBooksAccess:v1";
 let booksOffset = 0;
 let booksHasMore = false;
 let booksLoading = false;
 let booksAccessLoading = false;
 let booksAccessVerified = false;
-let booksGraduatedAccess = false;
 let booksCacheKey = "";
 let booksUserId = "";
 let booksSchoolId = "";
@@ -18,7 +17,8 @@ let booksCacheRestored = false;
 function readBooksCache() {
   if (!booksCacheKey) return null;
   try {
-    const raw = localStorage.getItem(booksCacheKey) ||
+    const raw =
+      localStorage.getItem(booksCacheKey) ||
       localStorage.getItem(booksCacheKey.replace(BOOKS_CACHE_PREFIX, LEGACY_BOOKS_CACHE_PREFIX));
     const cached = JSON.parse(raw || "null");
     if (!cached || !Array.isArray(cached.books)) return null;
@@ -54,14 +54,13 @@ function saveBooksAccess() {
   try {
     const payload = JSON.stringify({
       userId: booksUserId,
-      studentId: booksUserId,
       schoolId: booksSchoolId,
       cacheKey: booksCacheKey,
     });
     localStorage.setItem(BOOKS_LAST_ACCESS_KEY, payload);
     localStorage.setItem(LEGACY_BOOKS_LAST_ACCESS_KEY, payload);
   } catch (error) {
-    console.warn("Could not save books access locally:", error);
+    console.warn("Could not save librarian catalog access locally:", error);
   }
 }
 
@@ -77,7 +76,6 @@ function restoreCachedBooksPage() {
 
     booksUserId = savedUserId;
     booksSchoolId = savedAccess.schoolId || "";
-    booksGraduatedAccess = false;
     booksCacheKey = `${BOOKS_CACHE_PREFIX}${booksUserId}:${booksSchoolId || "no-school"}`;
 
     const cachedCatalog = readBooksCache();
@@ -91,7 +89,7 @@ function restoreCachedBooksPage() {
     booksCacheRestored = true;
 
     const catalog = document.getElementById("booksCatalog");
-    const mainContent = document.querySelector(".students-main-content");
+    const mainContent = document.querySelector(".books-main-content, .students-main-content");
     if (catalog) catalog.hidden = false;
     mainContent?.classList.remove("books-access-checking");
 
@@ -115,56 +113,55 @@ function updateBooksNextButton() {
 }
 
 function booksErrorMessage(error, action = "load") {
+  const backendMessage = window.getSupabaseErrorMessage?.(error, "");
+  if (backendMessage) return backendMessage;
+
   const code = String(error?.code || "").toLowerCase();
   const status = Number(error?.status || error?.statusCode || 0);
   const diagnostic = `${code} ${error?.message || ""} ${error?.details || ""} ${error?.hint || ""}`.toLowerCase();
 
-  if (status === 401 || code === "pgrst301" || /invalid jwt|session.*expired|refresh token/.test(diagnostic)) {
-    return "Your session has expired. Sign in again, then reopen Books.";
+  if (diagnostic.includes("jwt") || status === 401) {
+    return "Your sign-in session expired. Please refresh the page and sign in again.";
   }
-  if (/school.{0,30}inactive|inactive.{0,30}school/.test(diagnostic)) {
-    return "This school is inactive. Books are unavailable until the school is reactivated.";
+  if (diagnostic.includes("network") || diagnostic.includes("fetch failed") || diagnostic.includes("failed to fetch")) {
+    return "Could not reach the database. Check your internet connection and try again.";
   }
-  if (code === "42501" || status === 403 || /row-level security|permission denied|not authorized|access denied|insufficient privilege/.test(diagnostic)) {
-    return action === "history"
-      ? "You do not have permission to view this borrowing history. Contact your school administrator if you need access."
-      : "You do not have permission to view the library catalog. Contact your school administrator for help.";
+  if (status === 403 || diagnostic.includes("permission denied") || diagnostic.includes("row-level security")) {
+    return "You do not have permission to view this library catalog.";
   }
-  if (/failed to fetch|fetch failed|network|connection|timeout|timed out/.test(diagnostic)) {
-    return `${action === "history" ? "Borrowing history" : "Books"} could not be loaded because the connection failed. Check your internet connection and try again.`;
+  if (action === "history") {
+    return "Could not load borrowing records for this book. Please try again.";
   }
-  if (code === "pgrst116") return "The account or book information could not be found. Refresh the page and try again.";
-  return action === "history"
-    ? "Your borrowing history could not be loaded. Please try again."
-    : "The library catalog could not be loaded. Please try again.";
+  return error?.message || "Could not load the library catalog. Please try again.";
 }
 
 function showBooksNotice(message, type = "info", onRetry = null) {
   const notice = document.getElementById("booksPageNotice");
   if (!notice) return;
-  notice.replaceChildren();
+
   notice.dataset.type = type;
+  notice.replaceChildren();
 
   const icon = document.createElement("i");
-  icon.className = type === "info"
-    ? "fa-solid fa-spinner fa-spin"
-    : type === "graduated"
-      ? "fa-solid fa-graduation-cap"
-      : "fa-solid fa-triangle-exclamation";
+  icon.className =
+    type === "error"
+      ? "fa-solid fa-triangle-exclamation"
+      : "fa-solid fa-circle-info";
   icon.setAttribute("aria-hidden", "true");
 
   const content = document.createElement("div");
   content.className = "books-notice-content";
-  const text = document.createElement("span");
-  text.textContent = message;
-  content.appendChild(text);
 
-  if (onRetry) {
-    const retry = document.createElement("button");
-    retry.type = "button";
-    retry.textContent = "Try again";
-    retry.addEventListener("click", onRetry, { once: true });
-    content.appendChild(retry);
+  const p = document.createElement("p");
+  p.textContent = message;
+  content.appendChild(p);
+
+  if (typeof onRetry === "function") {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = "Try again";
+    button.addEventListener("click", onRetry, { once: true });
+    content.appendChild(button);
   }
 
   notice.append(icon, content);
@@ -180,28 +177,46 @@ function hideBooksNotice() {
   }
 }
 
+function showBooksCatalogLoading() {
+  const gridContainer = document.getElementById("bookCardGrid");
+  if (!gridContainer) return;
+  gridContainer.innerHTML = `
+    <div style="grid-column: 1 / -1; text-align: center; padding: 3rem; color: #64748b;">
+      <i class="fa-solid fa-spinner fa-spin" style="margin-right: 0.5rem; font-size: 1.2rem;"></i>
+      Loading library catalog...
+    </div>
+  `;
+}
+
 async function initializeBooksPage(options = {}) {
   if (booksAccessLoading) return;
   const forceCatalogRefresh = options.forceCatalogRefresh === true;
   const cachedUserId = booksUserId;
   const cachedSchoolId = booksSchoolId;
   let matchingCachedCatalog = false;
-
   booksAccessLoading = true;
-  booksAccessVerified = false;
-  booksGraduatedAccess = false;
+  hideBooksNotice();
+
+  const refreshButton = document.getElementById("refreshBooksCatalog");
   const catalog = document.getElementById("booksCatalog");
-  const mainContent = document.querySelector(".students-main-content");
+  const mainContent = document.querySelector(".books-main-content, .students-main-content");
+
+  if (allCatalogBooks.length === 0) showBooksCatalogLoading();
   if (!booksCacheRestored && catalog) catalog.hidden = true;
   if (!booksCacheRestored) mainContent?.classList.add("books-access-checking");
-  hideBooksNotice();
+
+  if (forceCatalogRefresh && refreshButton) {
+    refreshButton.disabled = true;
+    refreshButton.innerHTML =
+      '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i><span>Refreshing...</span>';
+  }
 
   try {
     if (!window.supabaseClient) throw new Error("The database client is unavailable.");
     const { data: authData, error: authError } = await window.supabaseClient.auth.getUser();
     if (authError) throw authError;
     if (!authData?.user?.id) {
-      const error = new Error("Your session has expired.");
+      const error = new Error("Your session has expired. Please sign in again.");
       error.status = 401;
       throw error;
     }
@@ -210,56 +225,26 @@ async function initializeBooksPage(options = {}) {
 
     const { data: profile, error: profileError } = await window.supabaseClient
       .from("profiles")
-      .select("role, school_id")
+      .select("id, role, school_id, full_name")
       .eq("id", authData.user.id)
-      .single();
+      .maybeSingle();
+
     if (profileError) throw profileError;
+
+    const role = String(profile?.role || "").trim().toLowerCase();
+    const isLibrarian = ["librarian", "admin", "super_admin", "staff"].includes(role);
+    if (profile && !isLibrarian) {
+      throw new Error("The library catalog is accessible to librarian and staff accounts only.");
+    }
 
     booksUserId = authData.user.id;
     booksSchoolId = profile?.school_id || "";
     matchingCachedCatalog = matchingCachedCatalog && cachedSchoolId === booksSchoolId;
     booksCacheKey = `${BOOKS_CACHE_PREFIX}${booksUserId}:${booksSchoolId || "no-school"}`;
-
-    if (String(profile?.role || "").trim().toLowerCase() === "student") {
-      let enrollmentQuery = window.supabaseClient
-        .from("student_enrollments")
-        .select("enrollment_status")
-        .eq("student_id", authData.user.id);
-      if (profile.school_id) enrollmentQuery = enrollmentQuery.eq("school_id", profile.school_id);
-
-      const { data: enrollments, error: enrollmentError } = await enrollmentQuery;
-      if (enrollmentError) throw enrollmentError;
-      booksGraduatedAccess = (enrollments || []).some((enrollment) =>
-        ["graduated", "transferred", "transfered"].includes(
-          String(enrollment.enrollment_status || "").trim().toLowerCase(),
-        ),
-      );
-    }
-
     booksAccessVerified = true;
+
     saveBooksAccess();
-
-    if (booksGraduatedAccess) {
-      try {
-        localStorage.removeItem(booksCacheKey);
-      } catch (error) {
-        console.warn("Could not clear the saved Books catalog:", error);
-      }
-      allCatalogBooks = [];
-      booksOffset = 0;
-      booksHasMore = false;
-      booksCacheRestored = false;
-      document.getElementById("bookCardGrid")?.replaceChildren();
-      mainContent?.classList.remove("books-access-checking");
-      showBooksNotice(
-        "Books are unavailable because your enrollment at this school is marked as graduated or transferred. Contact your school administrator if you think this is a mistake.",
-        "graduated",
-      );
-      return;
-    }
-
     mainContent?.classList.remove("books-access-checking");
-    hideBooksNotice();
     if (catalog) catalog.hidden = false;
 
     if (matchingCachedCatalog && !forceCatalogRefresh) {
@@ -268,13 +253,22 @@ async function initializeBooksPage(options = {}) {
       return;
     }
 
-    await loadBookCatalog();
+    await loadBookCatalog({
+      preserveCurrent: forceCatalogRefresh && allCatalogBooks.length > 0,
+    });
   } catch (error) {
     console.error("Could not determine Books page access:", error);
     mainContent?.classList.remove("books-access-checking");
-    showBooksNotice(booksErrorMessage(error), "error", () => initializeBooksPage({ forceCatalogRefresh: true }));
+    showBooksNotice(booksErrorMessage(error), "error", () =>
+      initializeBooksPage({ forceCatalogRefresh: true }),
+    );
   } finally {
     booksAccessLoading = false;
+    if (forceCatalogRefresh && refreshButton) {
+      refreshButton.disabled = false;
+      refreshButton.innerHTML =
+        '<i class="fa-solid fa-rotate" aria-hidden="true"></i><span>Refresh</span>';
+    }
   }
 }
 
@@ -282,12 +276,13 @@ async function loadBookCatalog(options = {}) {
   const gridContainer = document.getElementById("bookCardGrid");
   if (!gridContainer) return;
   const append = options.append === true;
+  const preserveCurrent = options.preserveCurrent === true && !append;
   const nextButton = document.getElementById("nextBooksPage");
 
   if (booksLoading || (append && !booksHasMore)) return;
   booksLoading = true;
 
-  if (!append) {
+  if (!append && !preserveCurrent) {
     booksOffset = 0;
     booksHasMore = false;
     allCatalogBooks = [];
@@ -296,12 +291,7 @@ async function loadBookCatalog(options = {}) {
       nextButton.disabled = false;
       nextButton.textContent = "Next";
     }
-    gridContainer.innerHTML = `
-      <div style="grid-column: 1 / -1; text-align: center; padding: 3rem; color: #64748b;">
-        <i class="fa-solid fa-spinner fa-spin" style="margin-right: 0.5rem; font-size: 1.2rem;"></i>
-        Loading library catalog...
-      </div>
-    `;
+    showBooksCatalogLoading();
   } else if (nextButton) {
     nextButton.disabled = true;
     nextButton.textContent = "Loading...";
@@ -309,19 +299,24 @@ async function loadBookCatalog(options = {}) {
   hideBooksNotice();
 
   try {
-    const { data: page, error } = await window.supabaseClient
+    const queryOffset = append ? booksOffset : 0;
+    let query = window.supabaseClient
       .from("books")
-      .select(
-        `
+      .select(`
         *,
         departments ( name )
-      `,
-      )
-      .eq("status", "active")
+      `);
+
+    if (booksSchoolId) {
+      query = query.eq("school_id", booksSchoolId);
+    }
+
+    query = query
       .order("title", { ascending: true })
       .order("id", { ascending: true })
-      .range(booksOffset, booksOffset + BOOKS_PAGE_SIZE);
+      .range(queryOffset, queryOffset + BOOKS_PAGE_SIZE);
 
+    const { data: page, error } = await query;
     if (error) throw error;
 
     const books = page || [];
@@ -329,35 +324,31 @@ async function loadBookCatalog(options = {}) {
     booksHasMore = books.length > BOOKS_PAGE_SIZE;
 
     if (visibleBooks.length === 0) {
-      if (!append) renderBookCards([]);
+      if (!append) {
+        allCatalogBooks = [];
+        booksOffset = 0;
+        renderBookCards([]);
+      }
+      saveBooksCache();
       return;
     }
 
-    const { data: borrowings, error: borrowingsError } = await window.supabaseClient
-        .from("book_borrowings")
-        .select("book_id")
-        .eq("status", "borrowed")
-        .in("book_id", visibleBooks.map((book) => book.id));
-
-    if (borrowingsError) throw borrowingsError;
-
-    booksOffset += visibleBooks.length;
+    booksOffset = queryOffset + visibleBooks.length;
     const catalogPage = visibleBooks.map((book) => ({
       ...book,
-      available_copies: getAvailableBookCopies(book, borrowings || []),
+      available_copies: getAvailableBookCopies(book),
     }));
-    allCatalogBooks = append
-      ? allCatalogBooks.concat(catalogPage)
-      : catalogPage;
+
+    allCatalogBooks = append ? allCatalogBooks.concat(catalogPage) : catalogPage;
     saveBooksCache();
-    const query = document
-      .getElementById("catalogSearchInput")
-      ?.value.toLowerCase().trim() || "";
-    renderBookCards(filterCatalogBooks(query));
+
+    const currentSearch =
+      document.getElementById("catalogSearchInput")?.value.toLowerCase().trim() || "";
+    renderBookCards(filterCatalogBooks(currentSearch));
   } catch (err) {
     console.error("Error loading catalog:", err);
     showBooksNotice(booksErrorMessage(err), "error", () => loadBookCatalog({ append }));
-    if (!append) {
+    if (!append && !preserveCurrent) {
       gridContainer.replaceChildren();
     }
   } finally {
@@ -367,27 +358,28 @@ async function loadBookCatalog(options = {}) {
 }
 
 function filterCatalogBooks(query) {
+  if (!query) return allCatalogBooks;
   return allCatalogBooks.filter((book) => {
     const title = (book.title || "").toLowerCase();
     const author = (book.author || "").toLowerCase();
     const dept = (book.departments?.name || "").toLowerCase();
     const code = (book.book_code || "").toLowerCase();
+    const shelf = (book.shelf_location || "").toLowerCase();
 
     return (
       title.includes(query) ||
       author.includes(query) ||
       dept.includes(query) ||
-      code.includes(query)
+      code.includes(query) ||
+      shelf.includes(query)
     );
   });
 }
 
-function getAvailableBookCopies(book, activeBorrowings) {
-  const totalCopies = Number(book.total_copies) || 0;
-  const borrowedCopies = activeBorrowings.filter(
-    (borrowing) => borrowing.book_id === book.id,
-  ).length;
-  return Math.max(0, totalCopies - borrowedCopies);
+function getAvailableBookCopies(book) {
+  const availableCopies = Number(book.available_copies);
+  if (!Number.isFinite(availableCopies)) return 0;
+  return Math.max(0, Math.floor(availableCopies));
 }
 
 function renderBookCards(booksToRender) {
@@ -398,10 +390,11 @@ function renderBookCards(booksToRender) {
 
   if (!booksToRender || booksToRender.length === 0) {
     gridContainer.innerHTML = `
-     <div style="grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 5rem 2rem; min-height: 250px; text-align: center; color: #64748b;">
-  <i class="fa-solid fa-book-open" style="font-size: 10rem; margin-bottom: 1rem; color: #cbd5e1; display: block;"></i>
-  <span style="font-size: 1.1rem; font-weight: 800; color: #334155;">No books available.</span>
-</div>
+      <div style="grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 5rem 2rem; min-height: 250px; text-align: center; color: #64748b;">
+        <i class="fa-solid fa-book-open" style="font-size: 6rem; margin-bottom: 1rem; color: #cbd5e1; display: block;"></i>
+        <span style="font-size: 1.1rem; font-weight: 700; color: #334155;">No books found in the library catalog.</span>
+        <p style="font-size: 0.9rem; color: #64748b; margin-top: 0.5rem;">Try adjusting your search or add books from the Inventory & Circulation page.</p>
+      </div>
     `;
     return;
   }
@@ -413,8 +406,9 @@ function renderBookCards(booksToRender) {
     const coverSrc =
       book.cover_image_url ||
       "https://cdn-icons-png.flaticon.com/512/29/29302.png";
-    const departmentName = book.departments ? book.departments.name : "-";
+    const departmentName = book.departments ? book.departments.name : "General";
     const availableCopies = Number(book.available_copies) || 0;
+    const totalCopies = Number(book.total_copies) || 0;
 
     const isAvailable = availableCopies > 0;
     const badgeClass = isAvailable ? "badge-available" : "badge-unavailable";
@@ -435,11 +429,15 @@ function renderBookCards(booksToRender) {
         <span class="book-card-category">${escapeHtml(departmentName)}</span>
         <h3 class="book-card-title">${escapeHtml(book.title)}</h3>
         <p class="book-card-author">By ${escapeHtml(book.author || "Unknown")}</p>
+        <div class="book-card-meta-line" style="font-size:0.8rem; color:#64748b; margin-bottom: 0.5rem;">
+          <span>Code: <strong>${escapeHtml(book.book_code || "-")}</strong></span> &bull; 
+          <span>Total: <strong>${totalCopies}</strong></span>
+        </div>
         <div class="book-card-footer">
           <span class="book-copies-text">Shelf: <strong>${escapeHtml(book.shelf_location || "N/A")}</strong></span>
-<button class="book-view-details-btn" onclick="openStudentBookHistoryModal('${book.id}')">
-  View
-</button>
+          <button class="book-view-details-btn" onclick="openStudentBookHistoryModal('${escapeHtml(book.id)}')">
+            <i class="fa-solid fa-eye" aria-hidden="true" style="margin-right:4px;"></i> View Details
+          </button>
         </div>
       </div>
     `;
@@ -456,112 +454,185 @@ if (catalogSearchInput) {
   });
 }
 
+// Restore cache immediately synchronously
+restoreCachedBooksPage();
+
 document.addEventListener("DOMContentLoaded", () => {
   document
     .getElementById("nextBooksPage")
     ?.addEventListener("click", () => loadBookCatalog({ append: true }));
+  document
+    .getElementById("refreshBooksCatalog")
+    ?.addEventListener("click", () => initializeBooksPage({ forceCatalogRefresh: true }));
+
+  const booksThemeToggle = document.getElementById("booksThemeToggle");
+  if (booksThemeToggle && !booksThemeToggle.dataset.themeBound) {
+    booksThemeToggle.dataset.themeBound = "true";
+    booksThemeToggle.addEventListener("click", () => {
+      const dark = !document.body.classList.contains("app-dark");
+      if (typeof window.setAppTheme === "function") {
+        window.setAppTheme(dark);
+      } else {
+        document.body.classList.toggle("app-dark", dark);
+        localStorage.setItem("tHubTheme", dark ? "dark" : "light");
+      }
+    });
+  }
 
   restoreCachedBooksPage();
   initializeBooksPage();
 });
 
 async function openStudentBookHistoryModal(bookId) {
-  if (booksGraduatedAccess) {
-    showToast("Borrowing history is unavailable because your enrollment is marked as graduated or transferred.", "error");
-    return;
-  }
-  const studentModal = document.getElementById("studentHistoryModal");
-  if (!studentModal) {
-    if (typeof showToast === "function") {
-      showToast("Modal element not found.", "error");
-    }
+  const modal = document.getElementById("studentHistoryModal");
+  if (!modal) {
+    if (typeof showToast === "function") showToast("Modal element not found.", "error");
     return;
   }
 
-  studentModal.style.display = "flex";
+  modal.style.display = "flex";
   if (typeof lockBodyScroll === "function") lockBodyScroll();
 
   const historyContainer = document.getElementById("studentHistoryContent");
   if (historyContainer) {
     historyContainer.innerHTML = `
-      <div style="text-align: center; border-radius: 20px; padding: 2rem; color: #64748b;">
-        <i class="fa-solid fa-spinner fa-spin" style="margin-right: 0.5rem;"></i> Loading your history...
+      <div style="text-align: center; padding: 2.5rem; color: #64748b;">
+        <i class="fa-solid fa-spinner fa-spin" style="margin-right: 0.5rem; font-size: 1.2rem;"></i> Loading book details & circulation records...
       </div>
     `;
   }
 
   try {
-    const {
-      data: { user },
-      error: authError,
-    } = await window.supabaseClient.auth.getUser();
-    if (authError || !user) throw new Error("Not authenticated");
+    const book =
+      allCatalogBooks.find((item) => item.id === bookId) || {};
 
-    const { data: profile, error: profileError } = await window.supabaseClient
-      .from("profiles")
-      .select("id, full_name, email, photo_url, role, students(student_id), teachers(staff_id)")
-      .eq("id", user.id)
-      .single();
-    if (profileError) throw profileError;
-
-    const { data: history, error } = await window.supabaseClient
+    const { data: borrowings, error: borrowError } = await window.supabaseClient
       .from("book_borrowings")
-      .select(`*, books ( title, book_code, description )`)
+      .select(`
+        *,
+        profiles (
+          id,
+          full_name,
+          email,
+          role,
+          photo_url,
+          students ( student_id )
+        )
+      `)
       .eq("book_id", bookId)
-      .eq("borrower_id", user.id)
       .order("created_at", { ascending: false });
 
-    if (error) throw error;
+    if (borrowError) throw borrowError;
 
     if (!historyContainer) return;
 
-    const book =
-      allCatalogBooks.find((item) => item.id === bookId) ||
-      history?.[0]?.books ||
-      {};
-    const student = Array.isArray(profile.students)
-      ? profile.students[0]
-      : profile.students;
-    const borrowerIdentity = getBorrowerIdentity(profile, student);
-    const borrowerName = profile.full_name || profile.email || "User";
-    const photoUrl = getSafeProfilePhotoUrl(profile.photo_url);
-    const bookDetails = `
-      <section class="book-history-book">
-        <h4>${escapeHtml(book.title || "Book details")}</h4>
-        ${book?.book_code ? `<p><strong>Book ID:</strong> ${escapeHtml(book.book_code)}</p>` : ""}
-        <p><strong>Description:</strong> ${escapeHtml(book.description || "No description available.")}</p>
-      </section>
-      <section class="book-history-borrower" aria-label="Borrower profile">
-        <img class="app-person-avatar" src="${escapeHtml(photoUrl)}" alt="" aria-hidden="true" onerror="this.onerror=null;this.src='${escapeHtml(window.DEFAULT_PROFILE_AVATAR || "")}'" />
-        <span class="app-person-meta">
-          <strong>${escapeHtml(borrowerName)}</strong>
-          <small>${escapeHtml(profile.role || "User")}</small>
-          ${borrowerIdentity ? `<small>${escapeHtml(borrowerIdentity.label)}: ${escapeHtml(borrowerIdentity.value)}</small>` : ""}
-        </span>
-      </section>
-      <h4 class="book-history-section-title">Borrowing History</h4>
+    const availableCopies = Number(book.available_copies) || 0;
+    const totalCopies = Number(book.total_copies) || 0;
+    const isAvailable = availableCopies > 0;
+    const availabilityBadgeClass = isAvailable ? "modal-pill-available" : "modal-pill-unavailable";
+    const availabilityText = isAvailable
+      ? `${availableCopies} Available / ${totalCopies} Total`
+      : "Out of Stock";
+
+    const coverSrc =
+      book.cover_image_url ||
+      "https://cdn-icons-png.flaticon.com/512/29/29302.png";
+    const deptName = book.departments?.name || "General";
+    const bookCode = book.book_code || "-";
+    const shelfLoc = book.shelf_location || "-";
+    const description = book.description || "No description provided.";
+    const totalCircCount = borrowings?.length || 0;
+
+    const bookSummary = `
+      <div class="modal-book-hero">
+        <img
+          class="modal-book-cover"
+          src="${escapeHtml(coverSrc)}"
+          alt="${escapeHtml(book.title || "Book")}"
+          onerror="this.onerror=null; this.src='https://cdn-icons-png.flaticon.com/512/149/149071.png';"
+        />
+        <div class="modal-book-info">
+          <h4 class="modal-book-title">${escapeHtml(book.title || "Book Details")}</h4>
+          <p class="modal-book-author">By <strong>${escapeHtml(book.author || "Unknown")}</strong></p>
+          <div class="modal-book-pills">
+            <span class="modal-pill modal-pill-dept"><i class="fa-solid fa-graduation-cap"></i> ${escapeHtml(deptName)}</span>
+            <span class="modal-pill modal-pill-meta"><i class="fa-solid fa-barcode"></i> Code: ${escapeHtml(bookCode)}</span>
+            <span class="modal-pill modal-pill-meta"><i class="fa-solid fa-layer-group"></i> Shelf: ${escapeHtml(shelfLoc)}</span>
+            <span class="modal-pill ${availabilityBadgeClass}"><i class="fa-solid ${isAvailable ? "fa-circle-check" : "fa-circle-xmark"}"></i> ${escapeHtml(availabilityText)}</span>
+          </div>
+          <p class="modal-book-desc">${escapeHtml(description)}</p>
+          <div>
+            <a href="library.html" class="modal-manage-btn">
+              <i class="fa-solid fa-arrow-right-arrow-left"></i> Manage in Inventory
+            </a>
+          </div>
+        </div>
+      </div>
+      <div class="modal-circulation-header">
+        <h4 class="modal-circulation-title">
+          <i class="fa-solid fa-clock-rotate-left"></i> Circulation Records
+        </h4>
+        <span class="modal-circulation-badge">${totalCircCount} records</span>
+      </div>
     `;
 
-    if (!history || history.length === 0) {
-      historyContainer.innerHTML = `${bookDetails}
-        <div class="empty-state-card" style="border-radius: 20px;">
-          <i class="fa-solid fa-book-open-reader empty-icon"></i>
-          <p>You have no borrowing history for this book yet.</p>
-        </div>`;
+    if (!borrowings || borrowings.length === 0) {
+      historyContainer.innerHTML = `
+        ${bookSummary}
+        <div class="circulation-empty">
+          <i class="fa-solid fa-box-open"></i>
+          <p>No active borrowings or circulation history for this book.</p>
+        </div>
+        <div class="modal-bottom-spacer"></div>
+      `;
       return;
     }
 
-    historyContainer.innerHTML = `${bookDetails}${history
-      .map((record) => `
-     <div class="small-card" style="background: #f8fafc; border-radius: 20px; padding: 1rem; margin-bottom: 0.75rem; border: 0.5px solid rgb(219, 215, 215);">
-        <p style="margin: 0 0 0.5rem 0;"><strong>Borrowed Date:</strong> ${formatDate(record.borrow_date)}</p>
-        <p style="margin: 0 0 0.5rem 0;"><strong>Due Date:</strong> ${formatDate(record.due_date)}</p>
-        <p style="margin: 0 0 0.5rem 0;"><strong>Return Date:</strong> ${record.return_date ? formatDate(record.return_date) : "Not returned yet"}</p>
-        <p style="margin: 0;"><strong>Status:</strong> <span class="status-${escapeHtml(record.status)}">${escapeHtml(record.status)}</span></p>
-      </div>
-    `).join("")}`;
+    const rows = borrowings.map((record) => {
+      const borrower = record.profiles || {};
+      const student = Array.isArray(borrower.students) ? borrower.students[0] : borrower.students;
+      const borrowerName = borrower.full_name || borrower.email || "Unknown Borrower";
+      const studentId = student?.student_id ? ` (ID: ${student.student_id})` : "";
+      const roleText = borrower.role ? `[${borrower.role}]` : "";
+      const isOverdue = record.status === "borrowed" && record.due_date && new Date(record.due_date) < new Date();
+      const statusClass = isOverdue ? "status-overdue" : `status-${escapeHtml(record.status || "borrowed")}`;
+      const statusLabel = isOverdue ? "Overdue" : (record.status || "Borrowed");
+      const statusIcon = isOverdue
+        ? "fa-circle-exclamation"
+        : (record.status === "returned" ? "fa-circle-check" : "fa-book-open");
+
+      return `
+        <div class="circulation-record-card">
+          <div class="circulation-record-top">
+            <div>
+              <span class="circulation-borrower-name">${escapeHtml(borrowerName)}${escapeHtml(studentId)}</span>
+              <span class="circulation-borrower-sub">${escapeHtml(roleText)}</span>
+            </div>
+            <span class="status-badge ${statusClass}">
+              <i class="fa-solid ${statusIcon}"></i> ${escapeHtml(statusLabel)}
+            </span>
+          </div>
+          <div class="circulation-dates-grid">
+            <div class="circulation-date-col">
+              <span class="circulation-date-lbl">Borrowed</span>
+              <span class="circulation-date-val">${formatDate(record.borrow_date)}</span>
+            </div>
+            <div class="circulation-date-col">
+              <span class="circulation-date-lbl">Due Date</span>
+              <span class="circulation-date-val">${formatDate(record.due_date)}</span>
+            </div>
+            <div class="circulation-date-col">
+              <span class="circulation-date-lbl">Returned</span>
+              <span class="circulation-date-val">${record.return_date ? formatDate(record.return_date) : "Active"}</span>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join("");
+
+    historyContainer.innerHTML = `${bookSummary}${rows}<div class="modal-bottom-spacer"></div>`;
   } catch (err) {
-    console.error("Error loading student history:", err);
+    console.error("Error loading book history:", err);
     if (historyContainer) {
       historyContainer.replaceChildren();
       const message = document.createElement("p");
@@ -577,44 +648,13 @@ async function openStudentBookHistoryModal(bookId) {
   }
 }
 
-function getBorrowerIdentity(profile, student = null) {
-  const role = String(profile?.role || "").toLowerCase();
-  const teacher = Array.isArray(profile?.teachers)
-    ? profile.teachers[0]
-    : profile?.teachers;
-
-  if (role === "student" && student?.student_id) {
-    return { label: "Student ID", value: student.student_id };
-  }
-  if (role === "teacher" && teacher?.staff_id) {
-    return { label: "Staff ID", value: teacher.staff_id };
-  }
-  return null;
-}
-
-function getSafeProfilePhotoUrl(photoUrl) {
-  if (!photoUrl) return window.DEFAULT_PROFILE_AVATAR || "";
-  try {
-    const parsedPhotoUrl = new URL(photoUrl, window.location.href);
-    if (
-      ["https:", "http:"].includes(parsedPhotoUrl.protocol) ||
-      photoUrl === window.DEFAULT_PROFILE_AVATAR
-    ) {
-      return parsedPhotoUrl.href;
-    }
-  } catch (error) {
-    console.warn("Ignoring invalid profile photo URL:", error);
-  }
-  return window.DEFAULT_PROFILE_AVATAR || "";
-}
-
 function formatDate(dateString) {
   if (!dateString) return "-";
   const date = new Date(dateString);
   if (isNaN(date.getTime())) return escapeHtml(dateString);
 
   return new Intl.DateTimeFormat("en-US", {
-    month: "long",
+    month: "short",
     day: "numeric",
     year: "numeric",
   }).format(date);
@@ -643,6 +683,12 @@ function closeStudentHistoryModal() {
 window.addEventListener("click", (e) => {
   const studentModal = document.getElementById("studentHistoryModal");
   if (studentModal && e.target === studentModal) {
+    closeStudentHistoryModal();
+  }
+});
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") {
     closeStudentHistoryModal();
   }
 });

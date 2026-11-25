@@ -16,7 +16,7 @@
     "spa-router.js",
     "push-config.js",
   ]);
-  const SHARED_CSS = new Set(["utils.css", "app-visuals.css"]);
+  const SHARED_CSS = new Set(["utils.css", "app-visuals.css", "app-theme.css"]);
   const routerScript = document.currentScript;
   const nativeDocumentRemove = document.removeEventListener.bind(document);
   const nativeWindowRemove = window.removeEventListener.bind(window);

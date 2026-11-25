@@ -242,11 +242,11 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     summaryBody.innerHTML = `
       <tr>
-        <td><strong>${ReportsCommon.formatNumber(totalCopiesSum)}</strong> <small style="color: #64748b;">(${books.length} titles)</small></td>
-        <td><strong style="color: #854d0e;">${ReportsCommon.formatNumber(totalBorrowedSum)}</strong></td>
-        <td><strong style="color: #16a34a;">${ReportsCommon.formatNumber(totalReturnedSum)}</strong></td>
-        <td><strong style="color: #dc2626;">${ReportsCommon.formatNumber(totalOverdueSum)}</strong></td>
-        <td><span style="color: #64748b; font-weight: 500;">${ReportsCommon.formatNumber(totalLostSum)}</span></td>
+        <td><strong>${ReportsCommon.formatNumber(totalCopiesSum)}</strong> <small class="report-metric-titles">(${books.length} titles)</small></td>
+        <td><strong class="report-metric-borrowed">${ReportsCommon.formatNumber(totalBorrowedSum)}</strong></td>
+        <td><strong class="report-metric-returned">${ReportsCommon.formatNumber(totalReturnedSum)}</strong></td>
+        <td><strong class="report-metric-overdue">${ReportsCommon.formatNumber(totalOverdueSum)}</strong></td>
+        <td><span class="report-metric-lost">${ReportsCommon.formatNumber(totalLostSum)}</span></td>
         <td><span class="status-badge available">${ReportsCommon.formatNumber(totalAvailableSum)}</span></td>
         <td>
           <button class="librarys-report-actions-btn btn-print" title="Print Report" onclick="ReportsCommon.printReport()">
@@ -288,8 +288,8 @@ document.addEventListener("DOMContentLoaded", async () => {
             <td>${ReportsCommon.escapeHTML(author)}</td>
             <td>${ReportsCommon.escapeHTML(department)}</td>
             <td>${ReportsCommon.formatNumber(item.totalCopies)}</td>
-            <td><strong style="color: #16a34a;">${ReportsCommon.formatNumber(item.availableCopies)}</strong></td>
-            <td><strong style="color: #854d0e;">${ReportsCommon.formatNumber(item.borrowedCopies)}</strong></td>
+            <td><strong class="report-cell-available">${ReportsCommon.formatNumber(item.availableCopies)}</strong></td>
+            <td><strong class="report-cell-borrowed">${ReportsCommon.formatNumber(item.borrowedCopies)}</strong></td>
             <td><span class="status-badge ${status}">${ReportsCommon.escapeHTML(status)}</span></td>
           </tr>
         `;
@@ -329,4 +329,18 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     ReportsCommon.exportToCSV("Library_Report", headers, rows);
   };
+
+  const reportsThemeToggle = document.getElementById("reportsThemeToggle");
+  if (reportsThemeToggle && !reportsThemeToggle.dataset.themeBound) {
+    reportsThemeToggle.dataset.themeBound = "true";
+    reportsThemeToggle.addEventListener("click", () => {
+      const dark = !document.body.classList.contains("app-dark");
+      if (typeof window.setAppTheme === "function") {
+        window.setAppTheme(dark);
+      } else {
+        document.body.classList.toggle("app-dark", dark);
+        localStorage.setItem("tHubTheme", dark ? "dark" : "light");
+      }
+    });
+  }
 });

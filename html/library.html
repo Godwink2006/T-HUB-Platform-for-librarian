@@ -14,9 +14,8 @@
     />
     <title>Library Management - T-HUB</title>
     <link rel="stylesheet" href="/css/library.css" />
-    <link rel="preconnect" href="https://fontsgoogleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="stylesheet" href="/css/utils.css" />
+    <link rel="stylesheet" href="/css/app-theme.css" />
     <link
       rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
@@ -73,10 +72,16 @@
             <p>Manage the collection, issue books, and record returns.</p>
           </div>
 
-          <button id="addBook" class="add-books-btn">
-            <i class="fa-solid fa-plus"></i>
-            Add Book
-          </button>
+          <div class="topbar-actions">
+            <button id="libraryThemeToggle" class="books-refresh-button app-theme-toggle" type="button" aria-label="Toggle theme">
+              <i class="fa-solid fa-moon" aria-hidden="true"></i>
+              <span>Theme</span>
+            </button>
+            <button id="addBook" class="add-books-btn">
+              <i class="fa-solid fa-plus"></i>
+              Add Book
+            </button>
+          </div>
         </header>
 
         <section class="toolbar">

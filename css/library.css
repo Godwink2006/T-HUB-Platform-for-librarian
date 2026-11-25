@@ -433,7 +433,7 @@ tr {
   max-width: 95%;
   background: #ffff;
   animation: modalShow 0.25s ease;
-  height: 500px;
+  height: auto;
 }
 
 .book-modal-header {
@@ -710,7 +710,7 @@ tr {
   max-width: 95%;
   background: #ffff;
   animation: modalShow 0.25s ease;
-  height: 470px;
+  height: auto;
 }
 
 .addBook-modal-body {
@@ -768,7 +768,7 @@ tr {
   max-width: 95%;
   background: #ffff;
   animation: modalShow 0.25s ease;
-  height: 470px;
+  height: auto;
 }
 
 .editBook-modal-body {
@@ -1234,21 +1234,22 @@ tr {
     width: 100%;
     max-width: 95%;
     height: auto;
-    max-height: min(650px, calc(100dvh - 24px));
+    max-height: min(720px, calc(100dvh - 32px));
     overflow: hidden;
     border-radius: 20px;
     font-family: "Poppins", sans-serif;
   }
 
-@media (max-width: 768px) {
   .modal-book,
   .view-book-modal,
   .edit-modal-book,
   .addBook-modal,
-  .editBook-modal {
-    padding: 12px;
+  .editBook-modal,
+  .library-delete-modal {
+    padding: 16px;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
   }
 
   .book-modal-body,
@@ -1260,6 +1261,7 @@ tr {
     overflow-y: auto;
     flex: 1 1 auto;
     -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
   }
 
   .book-modal-header,
@@ -1267,15 +1269,9 @@ tr {
   .edit-book-modal-header,
   .addBook-modal-header,
   .editBook-modal-header,
-  .book-modal-footer,
-  .view-modal-footer,
-  .edit-book-modal-footer,
-  .addBook-modal-footer,
-  .editBook-modal-footer {
+  .view-modal-footer {
     flex: 0 0 auto;
   }
-
-}
 
   .view-book-modal-header button {
     display: inline-flex;
@@ -1294,3 +1290,501 @@ tr {
     line-height: 1;
     cursor: pointer;
   }
+
+
+/* =========================================================
+   Library Inventory & Circulation Dark Theme and Modal Polish
+   ========================================================= */
+
+/* Dark Mode Page & Container */
+body.app-dark {
+  background: #000000 !important;
+  color: #f4f4f5;
+}
+
+body.app-dark .books-main-content {
+  background: #000000;
+  color: #f4f4f5;
+}
+
+body.app-dark .topbar h1 {
+  color: #f8fafc;
+}
+
+body.app-dark .topbar p {
+  color: #94a3b8;
+}
+
+/* Header Action Buttons & Theme Toggle */
+.topbar-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.books-refresh-button {
+  display: inline-flex;
+  min-height: 42px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 14px;
+  border: 1px solid #dbe3ef;
+  border-radius: 20px;
+  background: #fff;
+  color: #334155;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease;
+}
+
+body.app-dark .books-refresh-button.app-theme-toggle {
+  background: #18181b;
+  border-color: #333333;
+  color: #e2e8f0;
+}
+
+body.app-dark .books-refresh-button.app-theme-toggle:hover {
+  background: #27272a;
+  border-color: #444444;
+}
+
+/* Toolbar Search & Select Filters */
+body.app-dark .toolbar input,
+body.app-dark .toolbar select {
+  background: #18181b;
+  border: 1px solid #333333;
+  color: #f4f4f5;
+}
+
+body.app-dark .toolbar input::placeholder {
+  color: #71717a;
+}
+
+body.app-dark .toolbar input:focus,
+body.app-dark .toolbar select:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+/* Table Card & Dark Table */
+body.app-dark .books-table-card {
+  background: #121214;
+  border: 1px solid #333333;
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+body.app-dark table {
+  background: #121214;
+  border-color: #333333;
+}
+
+body.app-dark thead {
+  background: #1c1c1f !important;
+  border-color: #333333;
+}
+
+body.app-dark th {
+  background: #1c1c1f !important;
+  color: #e2e8f0 !important;
+  border: 0.5px solid #333333 !important;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+body.app-dark tr {
+  border: 0.5px solid #333333 !important;
+}
+
+body.app-dark td {
+  color: #f1f5f9;
+  border: 0.5px solid #333333 !important;
+}
+
+body.app-dark tbody tr:hover {
+  background: #18181b;
+}
+
+/* Status Badges */
+.status-borrowed,
+.status-returned,
+.status-overdue {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.status-borrowed {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.status-returned {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.status-overdue {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+body.app-dark .books-status-active {
+  background: #052e16 !important;
+  color: #86efac !important;
+  border: 1px solid #14532d;
+}
+
+body.app-dark .books-status-inactive {
+  background: #450a0a !important;
+  color: #fca5a5 !important;
+  border: 1px solid #7f1d1d;
+}
+
+body.app-dark .status-borrowed {
+  background: #451a03 !important;
+  color: #fcd34d !important;
+  border: 1px solid #78350f;
+}
+
+body.app-dark .status-returned {
+  background: #052e16 !important;
+  color: #86efac !important;
+  border: 1px solid #14532d;
+}
+
+body.app-dark .status-overdue {
+  background: #450a0a !important;
+  color: #fca5a5 !important;
+  border: 1px solid #7f1d1d;
+}
+
+/* Table Row Action Buttons */
+.books-actions-btn {
+  border-radius: 50% !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.books-actions-btn:hover {
+  transform: scale(1.08);
+}
+
+body.app-dark .books-actions-btn.view {
+  background: #1e3a8a !important;
+  color: #93c5fd !important;
+}
+
+body.app-dark .books-actions-btn.view:hover {
+  background: #2563eb !important;
+  color: #ffffff !important;
+}
+
+body.app-dark .books-actions-btn.edit {
+  background: #451a03 !important;
+  color: #fcd34d !important;
+}
+
+body.app-dark .books-actions-btn.edit:hover {
+  background: #78350f !important;
+  color: #ffffff !important;
+}
+
+body.app-dark .books-actions-btn.library-delete-btn {
+  background: #450a0a !important;
+  color: #fca5a5 !important;
+}
+
+body.app-dark .books-actions-btn.library-delete-btn:hover {
+  background: #7f1d1d !important;
+  color: #ffffff !important;
+}
+
+/* Pagination & Empty Results */
+body.app-dark .library-empty-result {
+  color: #94a3b8;
+}
+
+body.app-dark .library-books-pagination button {
+  background: #18181b;
+  border: 1px solid #27272a;
+  color: #e2e8f0;
+}
+
+body.app-dark .library-books-pagination button:hover:not(:disabled) {
+  background: #27272a;
+}
+
+/* =========================================================
+   Library Modals Dark Theme (View, Add, Edit, Borrow, Return, Delete)
+   ========================================================= */
+
+/* Scrim / Backdrop */
+body.app-dark :is(
+  .modal-book,
+  .view-book-modal,
+  .edit-modal-book,
+  .addBook-modal,
+  .editBook-modal,
+  .library-delete-modal
+) {
+  background: rgba(0, 0, 0, 0.75) !important;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+/* Modal Content Cards */
+body.app-dark :is(
+  .book-modal-content,
+  .view-book-modal-content,
+  .edit-book-modal-content,
+  .addBook-modal-content,
+  .editBook-modal-content,
+  .library-delete-modal-content
+) {
+  background: #18181b !important;
+  color: #f4f4f5 !important;
+  border: 1px solid #27272a !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7) !important;
+}
+
+/* Modal Headers */
+body.app-dark :is(
+  .book-modal-header,
+  .view-book-modal-header,
+  .edit-book-modal-header,
+  .addBook-modal-header,
+  .editBook-modal-header
+) {
+  background: #18181b !important;
+  border-bottom: 1px solid #27272a !important;
+}
+
+body.app-dark :is(
+  .book-modal-header,
+  .view-book-modal-header,
+  .edit-book-modal-header,
+  .addBook-modal-header,
+  .editBook-modal-header
+) h2 {
+  color: #f8fafc !important;
+}
+
+/* Modal Close Buttons */
+body.app-dark :is(
+  .book-modal-header,
+  .view-book-modal-header,
+  .edit-book-modal-header,
+  .addBook-modal-header,
+  .editBook-modal-header
+) button {
+  background: #27272a !important;
+  color: #cbd5e1 !important;
+  border: 1px solid #3f3f46 !important;
+  border-radius: 50% !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  font-size: 20px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+body.app-dark :is(
+  .book-modal-header,
+  .view-book-modal-header,
+  .edit-book-modal-header,
+  .addBook-modal-header,
+  .editBook-modal-header
+) button:hover {
+  background: #3f3f46 !important;
+  color: #ffffff !important;
+  transform: scale(1.05);
+}
+
+/* Modal Bodies */
+body.app-dark :is(
+  .book-modal-body,
+  .view-book-body,
+  .edit-book-modal-body,
+  .addBook-modal-body,
+  .editBook-modal-body
+) {
+  background: #18181b !important;
+  color: #f4f4f5 !important;
+}
+
+/* Form Controls Inside Modals */
+body.app-dark .form-group label {
+  color: #cbd5e1 !important;
+}
+
+body.app-dark .form-group :is(input, select, textarea) {
+  background: #202024 !important;
+  border: 1px solid #333339 !important;
+  color: #f4f4f5 !important;
+}
+
+body.app-dark .form-group :is(input, select, textarea):focus {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2) !important;
+}
+
+body.app-dark .borrower-search-hint {
+  color: #94a3b8 !important;
+}
+
+body.app-dark #borrowDateDisplay,
+body.app-dark #displayBorrowDate,
+body.app-dark #displayReturnDate {
+  color: #f8fafc !important;
+  font-weight: 500;
+}
+
+/* Modal Footers & Action Buttons */
+body.app-dark :is(
+  .book-modal-footer,
+  .edit-book-modal-footer,
+  .addBook-modal-footer,
+  .editBook-modal-footer,
+  .view-modal-footer
+) {
+  border-top: 1px solid #27272a;
+  padding-top: 20px;
+}
+
+body.app-dark .cancel-btn {
+  background: #27272a !important;
+  border: 1px solid #3f3f46 !important;
+  color: #e2e8f0 !important;
+}
+
+body.app-dark .cancel-btn:hover {
+  background: #3f3f46 !important;
+  color: #ffffff !important;
+}
+
+body.app-dark .save-btn,
+body.app-dark .edit-btn {
+  background: #2563eb !important;
+  border: 1px solid #1d4ed8 !important;
+  color: #ffffff !important;
+}
+
+body.app-dark .save-btn:hover,
+body.app-dark .edit-btn:hover {
+  background: #1d4ed8 !important;
+}
+
+/* View Book Modal Specifics */
+body.app-dark .details-item label {
+  color: #94a3b8 !important;
+}
+
+body.app-dark .details-item p {
+  color: #f8fafc !important;
+}
+
+body.app-dark #viewBookStatus {
+  border-radius: 20px;
+  font-weight: 600;
+  padding: 4px 12px;
+  background: #052e16;
+  color: #86efac;
+  border: 1px solid #14532d;
+}
+
+body.app-dark .book-table-card {
+  background: #202024 !important;
+  border: 1px solid #2e2e34 !important;
+  border-radius: 14px;
+  overflow: hidden;
+  margin-top: 20px;
+}
+
+body.app-dark .book-table-card h4 {
+  color: #f8fafc !important;
+  padding: 12px 16px 8px;
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+body.app-dark .book-table-card table {
+  background: #202024 !important;
+  border-color: #2e2e34;
+}
+
+body.app-dark .book-table-card thead {
+  background: #27272a !important;
+  border-bottom: 1px solid #2e2e34;
+}
+
+body.app-dark .book-table-card th {
+  background: #27272a !important;
+  color: #cbd5e1 !important;
+  border: 0.5px solid #2e2e34 !important;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+body.app-dark .book-table-card td {
+  color: #f4f4f5 !important;
+  border: 0.5px solid #2e2e34 !important;
+}
+
+body.app-dark .book-table-card tbody tr:hover {
+  background: #27272a;
+}
+
+/* Delete Book Modal Specifics */
+body.app-dark .library-delete-modal-content {
+  background: #18181b !important;
+  border-color: #27272a !important;
+}
+
+body.app-dark .library-delete-modal-heading h2 {
+  color: #f8fafc !important;
+}
+
+body.app-dark .library-delete-modal-heading button {
+  color: #94a3b8 !important;
+}
+
+body.app-dark .library-delete-modal-heading button:hover {
+  color: #f8fafc !important;
+}
+
+body.app-dark .library-delete-book-label {
+  color: #f8fafc !important;
+}
+
+body.app-dark #deleteLibraryBookMessage {
+  color: #94a3b8 !important;
+}
+
+body.app-dark .library-delete-modal-actions button:not(#confirmDeleteLibraryBook) {
+  background: #27272a !important;
+  border-color: #3f3f46 !important;
+  color: #e2e8f0 !important;
+}
+
+body.app-dark .library-delete-modal-actions button:not(#confirmDeleteLibraryBook):hover {
+  background: #3f3f46 !important;
+  color: #ffffff !important;
+}

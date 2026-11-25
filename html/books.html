@@ -12,11 +12,10 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0"
     />
-    <title>Library Management - T-HUB</title>
+    <title>Library Catalog - T-HUB</title>
     <link rel="stylesheet" href="/css/books.css" />
-    <link rel="preconnect" href="https://fontsgoogleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="stylesheet" href="/css/utils.css" />
+    <link rel="stylesheet" href="/css/app-theme.css" />
     <link
       rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
@@ -36,8 +35,8 @@
       <link rel="stylesheet" href="/css/app-visuals.css" />
   </head>
   <body>
-    <div class="students-container">
-      <button
+    <div class="books-container students-container">
+        <button
         class="menu-toggle"
         id="menuToggle"
         aria-label="Toggle Navigation"
@@ -65,14 +64,23 @@
           <li><a href="settings.html"><i class="fa-solid fa-gear"></i><span>Settings</span></a></li>
         </ul>
       </aside>
-
-      <main class="students-main-content">
+      <main class="books-main-content students-main-content">
         <div id="booksPageNotice" class="books-page-notice" role="status" aria-live="polite" hidden></div>
 
         <div class="catalog-container" id="booksCatalog" hidden>
 
           <div class="catalog-header">
             <h2>Library Catalog</h2>
+            <div class="catalog-header-actions">
+              <button id="refreshBooksCatalog" class="books-refresh-button" type="button" aria-label="Refresh library catalog">
+                <i class="fa-solid fa-rotate" aria-hidden="true"></i>
+                <span>Refresh</span>
+              </button>
+              <button id="booksThemeToggle" class="books-refresh-button app-theme-toggle" type="button" aria-label="Toggle theme">
+                <i class="fa-solid fa-moon" aria-hidden="true"></i>
+                <span>Theme</span>
+              </button>
+            </div>
             <div class="catalog-search-box">
               <i class="fa-solid fa-magnifying-glass"></i>
               <input
@@ -100,10 +108,11 @@
     >
       <div class="student-modal-card">
         <div class="student-modal-header">
-          <h3>My Borrowing History</h3>
+          <h3 id="studentHistoryModalTitle">Book Details &amp; Circulation</h3>
           <button
             class="student-modal-close-btn"
             onclick="closeStudentHistoryModal()"
+            aria-label="Close modal"
           >
             <i class="fa-solid fa-xmark"></i>
           </button>

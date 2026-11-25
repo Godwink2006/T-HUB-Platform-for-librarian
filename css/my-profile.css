@@ -83,12 +83,14 @@ body {
 }
 
 .form-section h3 {
-  font-size: 18px;
+  font-size: 16px;
+  font-weight: 600;
   color: rgb(90, 88, 88);
   margin-bottom: 20px;
-  padding-bottom: 5px;
-  padding-left: 10px;
+  padding: 10px 16px;
   border: 0.5px solid rgb(219, 215, 215);
+  display: flex;
+  align-items: center;
 }
 
 .my-profile-upload {
@@ -198,16 +200,20 @@ body {
 
 .back-my-profiles-btn {
   height: 40px;
-  padding: 10px;
-  display: flex;
+  padding: 0 16px;
+  display: inline-flex;
   align-items: center;
+  justify-content: center;
+  gap: 8px;
   cursor: pointer;
   margin-bottom: 12px;
   border: 0.5px solid rgb(219, 215, 215);
-  width: 70px;
-  justify-content: space-between;
+  width: auto;
+  min-width: 80px;
   background: #1f2937;
   color: #f9fafb;
+  font-size: 14px;
+  font-weight: 500;
 }
 
 .my-profile-upload {
@@ -347,4 +353,136 @@ body {
     grid-template-columns: repeat(3, minmax(220px, 1fr));
     gap: 22px;
   }
+}
+
+
+/* =========================================================
+   My Profile Dark Theme Styles (matching Dashboard palette)
+   ========================================================= */
+
+body.app-dark {
+  background: #000000 !important;
+  color: #f4f4f5;
+}
+
+body.app-dark .my-profiles-page {
+  background: #000000;
+  color: #f4f4f5;
+}
+
+body.app-dark .page-header h2 {
+  color: #f8fafc;
+}
+
+body.app-dark .page-header p {
+  color: #94a3b8;
+}
+
+body.app-dark .back-my-profiles-btn {
+  background: #18181b;
+  color: #e2e8f0;
+  border: 1px solid #333333 !important;
+}
+
+body.app-dark .back-my-profiles-btn:hover {
+  background: #27272a;
+  border-color: #444444 !important;
+}
+
+body.app-dark .form-section {
+  background: #121214 !important;
+  border: 1px solid #333333 !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+
+body.app-dark .form-section h3 {
+  background: #18181b !important;
+  color: #f8fafc !important;
+  border: 1px solid #333333 !important;
+}
+
+body.app-dark .avatar-edit-container {
+  background-color: #18181b !important;
+  border: 1px solid #333333 !important;
+}
+
+body.app-dark .avatar-preview-wrapper {
+  background-color: #121214 !important;
+  border: 1px solid #333333 !important;
+}
+
+body.app-dark .form-group label {
+  color: #cbd5e1 !important;
+}
+
+body.app-dark .form-group :is(input, select, textarea),
+body.app-dark input:disabled,
+body.app-dark select:disabled,
+body.app-dark textarea:disabled {
+  background: #18181b !important;
+  border: 1px solid #333333 !important;
+  color: #f4f4f5 !important;
+}
+
+body.app-dark .form-group :is(input, select, textarea):focus {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+body.app-dark input::placeholder,
+body.app-dark textarea::placeholder {
+  color: #71717a !important;
+}
+
+body.app-dark .cancel-btn {
+  background: #27272a !important;
+  border: 1px solid #3f3f46 !important;
+  color: #e2e8f0 !important;
+}
+
+body.app-dark .cancel-btn:hover {
+  background: #27272a !important;
+  border-color: #444444 !important;
+}
+
+body.app-dark .save-btn,
+body.app-dark .savepassword-btn {
+  background: #2563eb !important;
+  border: 1px solid #1d4ed8 !important;
+  color: #ffffff !important;
+}
+
+body.app-dark .save-btn:hover,
+body.app-dark .savepassword-btn:hover {
+  background: #1d4ed8 !important;
+}
+
+body.app-dark .toggle-password {
+  color: #71717a;
+}
+
+body.app-dark .toggle-password:hover {
+  color: #f4f4f5;
+}
+
+body.app-dark .upload-btn {
+  background: #15803d !important;
+  border: 1px solid #14532d !important;
+  color: #ffffff !important;
+}
+
+body.app-dark .upload-btn:hover {
+  background: #16a34a !important;
+}
+
+body.app-dark .profile-information-notice {
+  background: #172554 !important;
+  color: #93c5fd !important;
+  border: 1px solid #1e40af !important;
+}
+
+body.app-dark *,
+body.app-dark *::before,
+body.app-dark *::after {
+  border-color: #333333;
 }

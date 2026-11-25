@@ -38,6 +38,7 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="theme-color" content="#2563eb" />
     <link rel="stylesheet" href="/css/app-visuals.css" />
+    <link rel="stylesheet" href="/css/app-theme.css" />
   </head>
   <body>
     <section class="my-profiles-page" id="myProfile">
@@ -46,10 +47,22 @@
         <p>Manage profile information.</p>
       </div>
 
-      <button id="backBtn" type="button" class="back-my-profiles-btn">
-        <i class="fa-solid fa-chevron-left"></i>
-        Back
-      </button>
+      <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 16px;">
+        <button id="backBtn" type="button" class="back-my-profiles-btn" style="margin-bottom: 0;">
+          <i class="fa-solid fa-chevron-left"></i>
+          Back
+        </button>
+        <button
+          id="profileThemeToggle"
+          class="app-theme-toggle back-my-profiles-btn"
+          type="button"
+          aria-label="Toggle theme"
+          style="margin-bottom: 0; width: auto; padding: 0 14px; gap: 8px;"
+        >
+          <i class="fa-solid fa-moon" aria-hidden="true"></i>
+          <span>Theme</span>
+        </button>
+      </div>
 
       <form id="myProfileForm" class="my-profiles-form">
         <div class="form-section" id="profileInformationSection">

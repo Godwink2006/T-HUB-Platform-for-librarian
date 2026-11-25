@@ -8,39 +8,52 @@ function applySavedAppTheme() {
   const isDark = savedTheme === "dark";
   document.body.classList.toggle("app-dark", isDark);
 
-  const toggle = document.getElementById("dashboardThemeToggle");
-  if (toggle) {
-    toggle.classList.add("app-theme-toggle");
-  }
-
-  const updateToggle = (dark) => {
+  const updateToggleElement = (themeToggle, dark) => {
+    if (!themeToggle) return;
+    themeToggle.setAttribute("aria-pressed", String(dark));
     const label = dark ? "Switch to light mode" : "Switch to dark mode";
-    toggle.setAttribute("aria-pressed", String(dark));
-    toggle.setAttribute("aria-label", label);
-    toggle.title = label;
-    toggle.innerHTML = dark
+    themeToggle.setAttribute("aria-label", label);
+    themeToggle.title = label;
+    themeToggle.innerHTML = dark
       ? '<i class="fa-solid fa-sun" aria-hidden="true"></i><span>Light mode</span>'
       : '<i class="fa-solid fa-moon" aria-hidden="true"></i><span>Dark mode</span>';
   };
 
-  if (toggle) updateToggle(isDark);
+  const updateAllToggles = (dark) => {
+    document.querySelectorAll(".app-theme-toggle").forEach((themeToggle) => {
+      updateToggleElement(themeToggle, dark);
+    });
+  };
+
+  const dashboardToggle = document.getElementById("dashboardThemeToggle");
+  if (dashboardToggle) {
+    dashboardToggle.classList.add("app-theme-toggle");
+  }
+
+  updateAllToggles(isDark);
+
   window.setAppTheme = (theme) => {
     const dark = theme === true || theme === "dark";
     localStorage.setItem(THUB_THEME_STORAGE_KEY, dark ? "dark" : "light");
     document.body.classList.toggle("app-dark", dark);
-    document.querySelectorAll(".app-theme-toggle").forEach((themeToggle) => {
-      themeToggle.setAttribute("aria-pressed", String(dark));
-      const label = dark ? "Switch to light mode" : "Switch to dark mode";
-      themeToggle.setAttribute("aria-label", label);
-      themeToggle.title = label;
-      themeToggle.innerHTML = dark
-        ? '<i class="fa-solid fa-sun" aria-hidden="true"></i><span>Light mode</span>'
-        : '<i class="fa-solid fa-moon" aria-hidden="true"></i><span>Dark mode</span>';
-    });
+    updateAllToggles(dark);
   };
-  if (toggle && !toggle.dataset.themeBound) {
-    toggle.dataset.themeBound = "true";
-    toggle.addEventListener("click", () => {
+
+  document.querySelectorAll(".app-theme-toggle").forEach((themeToggle) => {
+    if (!themeToggle.dataset.themeBound) {
+      themeToggle.dataset.themeBound = "true";
+      themeToggle.addEventListener("click", () => {
+        const dark = !document.body.classList.contains("app-dark");
+        window.setAppTheme(dark);
+      });
+    }
+  });
+
+  if (!window.__appThemeDelegated) {
+    window.__appThemeDelegated = true;
+    document.addEventListener("click", (e) => {
+      const toggleBtn = e.target.closest(".app-theme-toggle");
+      if (!toggleBtn) return;
       const dark = !document.body.classList.contains("app-dark");
       window.setAppTheme(dark);
     });
@@ -69,6 +82,9 @@ if (isLoginPage()) {
 } else {
   ensureAppThemeStylesheet();
   applySavedAppTheme();
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", applySavedAppTheme);
+  }
 }
 
 window.formatSchoolMoney = function (amount, currencyCode) {

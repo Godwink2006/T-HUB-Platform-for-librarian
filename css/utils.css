@@ -282,3 +282,74 @@ html.auth-welcome-open body {
   touch-action: none;
 }
 
+
+/* Universal Modal Scrolling and Layout */
+:is(
+  .modal-book,
+  .view-book-modal,
+  .edit-modal-book,
+  .addBook-modal,
+  .editBook-modal,
+  .library-delete-modal,
+  .student-modal-overlay,
+  .announcement-modal,
+  .date-modal,
+  .clear-data-modal
+) {
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  overscroll-behavior: contain !important;
+  padding: clamp(12px, 2.5vw, 24px) !important;
+  box-sizing: border-box !important;
+}
+
+:is(
+  .book-modal-content,
+  .view-book-modal-content,
+  .edit-book-modal-content,
+  .addBook-modal-content,
+  .editBook-modal-content,
+  .student-modal-card,
+  .announcement-modal-content,
+  .date-modal-content,
+  .library-delete-modal-content,
+  .clear-data-card
+) {
+  display: flex !important;
+  flex-direction: column !important;
+  max-height: min(720px, calc(100dvh - 32px)) !important;
+  height: auto !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+}
+
+:is(
+  .book-modal-header,
+  .view-book-modal-header,
+  .edit-book-modal-header,
+  .addBook-modal-header,
+  .editBook-modal-header,
+  .student-modal-header,
+  .announcement-modal-header,
+  .date-modal-header,
+  .view-modal-footer
+) {
+  flex: 0 0 auto !important;
+}
+
+:is(
+  .book-modal-body,
+  .view-book-body,
+  .edit-book-modal-body,
+  .addBook-modal-body,
+  .editBook-modal-body,
+  .student-modal-body,
+  .announcement-modal-body,
+  .date-modal-body
+) {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  overscroll-behavior: contain !important;
+}

@@ -2111,6 +2111,21 @@ restoreCachedLibraryPage();
 
 function initLibraryPage() {
   restoreCachedLibraryPage();
+
+  const libraryThemeToggle = document.getElementById("libraryThemeToggle");
+  if (libraryThemeToggle && !libraryThemeToggle.dataset.themeBound) {
+    libraryThemeToggle.dataset.themeBound = "true";
+    libraryThemeToggle.addEventListener("click", () => {
+      const dark = !document.body.classList.contains("app-dark");
+      if (typeof window.setAppTheme === "function") {
+        window.setAppTheme(dark);
+      } else {
+        document.body.classList.toggle("app-dark", dark);
+        localStorage.setItem("tHubTheme", dark ? "dark" : "light");
+      }
+    });
+  }
+
   document
     .getElementById("nextLibraryBooksPage")
     ?.addEventListener("click", () => loadBooksTable({ append: true }));

@@ -577,6 +577,20 @@ function resetToOriginalData() {
   }
 }
 document.addEventListener("DOMContentLoaded", async () => {
+  const schoolInfoThemeToggle = document.getElementById("schoolInfoThemeToggle");
+  if (schoolInfoThemeToggle && !schoolInfoThemeToggle.dataset.themeBound) {
+    schoolInfoThemeToggle.dataset.themeBound = "true";
+    schoolInfoThemeToggle.addEventListener("click", () => {
+      const dark = !document.body.classList.contains("app-dark");
+      if (typeof window.setAppTheme === "function") {
+        window.setAppTheme(dark);
+      } else {
+        document.body.classList.toggle("app-dark", dark);
+        localStorage.setItem("tHubTheme", dark ? "dark" : "light");
+      }
+    });
+  }
+
   restoreCachedSchoolInformation();
 
   const form =

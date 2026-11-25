@@ -210,7 +210,18 @@ body {
 *::before,
 *::after {
   border-width: 0.5px !important;
+}
+
+body:not(.app-dark) *,
+body:not(.app-dark) *::before,
+body:not(.app-dark) *::after {
   border-color: rgb(219, 215, 215) !important;
+}
+
+body.app-dark *,
+body.app-dark *::before,
+body.app-dark *::after {
+  border-color: #333333 !important;
 }
 
 

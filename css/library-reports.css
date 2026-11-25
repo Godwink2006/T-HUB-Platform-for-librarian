@@ -380,7 +380,18 @@ tbody tr:hover {
 *::before,
 *::after {
   border-width: 0.5px !important;
+}
+
+body:not(.app-dark) *,
+body:not(.app-dark) *::before,
+body:not(.app-dark) *::after {
   border-color: rgb(219, 215, 215) !important;
+}
+
+body.app-dark *,
+body.app-dark *::before,
+body.app-dark *::after {
+  border-color: #333333 !important;
 }
 
 body {
@@ -424,4 +435,195 @@ table {
   body {
     background: #ffffff;
   }
+}
+
+/* Dark Theme for Library Reports */
+body.app-dark {
+  background: #000000 !important;
+  color: #f4f4f5;
+}
+
+body.app-dark .librarys-report-main-content {
+  background: #000000;
+  color: #f4f4f5;
+}
+
+/* Sidebar Dark Mode */
+body.app-dark :is(.sidebar, aside.sidebar) {
+  background: #000000 !important;
+  border-right: 1px solid #333333 !important;
+}
+
+body.app-dark .sidebar .logo h2 {
+  color: #ffffff !important;
+}
+
+body.app-dark .sidebar-school-name {
+  background: #18181b !important;
+  color: #cbd5e1 !important;
+  border: 1px solid #333333 !important;
+}
+
+body.app-dark .menu li a {
+  color: #a1a1aa !important;
+}
+
+body.app-dark .menu li a:hover {
+  background: #18181b !important;
+  color: #ffffff !important;
+}
+
+body.app-dark .menu li.active a {
+  background: #222222 !important;
+  border: 1px solid #333333 !important;
+  color: #ffffff !important;
+}
+
+body.app-dark .menu li.active a i {
+  color: #60a5fa !important;
+}
+
+body.app-dark .topbar h1 {
+  color: #f8fafc;
+}
+
+body.app-dark .topbar p {
+  color: #94a3b8;
+}
+
+body.app-dark .back-librarys-report-btn {
+  background: #18181b;
+  color: #e2e8f0;
+  border: 1px solid #333333 !important;
+}
+
+body.app-dark .back-librarys-report-btn:hover {
+  background: #27272a;
+  border-color: #444444 !important;
+}
+
+body.app-dark .toolbar select,
+body.app-dark .toolbar input {
+  background: #18181b;
+  border: 1px solid #333333 !important;
+  color: #f4f4f5;
+}
+
+body.app-dark .toolbar select option {
+  background: #18181b;
+  color: #f4f4f5;
+}
+
+body.app-dark .toolbar select:focus,
+body.app-dark .toolbar input:focus {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+body.app-dark .librarys-report-table-card {
+  background: #18181b;
+  border: 1px solid #333333 !important;
+}
+
+body.app-dark thead {
+  background: #202024;
+  border-bottom: 1px solid #333333 !important;
+}
+
+body.app-dark th {
+  color: #cbd5e1;
+  border: 0.5px solid #333333 !important;
+}
+
+body.app-dark td {
+  color: #f1f5f9;
+  border-bottom: 0.5px solid #333333 !important;
+}
+
+body.app-dark tbody tr:hover {
+  background: #202024;
+}
+
+body.app-dark .btn-print {
+  background: #27272a;
+  color: #e2e8f0;
+  border: 1px solid #333333 !important;
+}
+
+body.app-dark .btn-print:hover {
+  background: #333333;
+}
+
+body.app-dark .report-detail-header h3 {
+  color: #f8fafc;
+}
+
+body.app-dark .report-detail-count {
+  background: #222222;
+  color: #cbd5e1;
+  border: 1px solid #333333 !important;
+}
+
+body.app-dark .status-badge.available {
+  background: #052e16;
+  color: #86efac;
+  border: 1px solid #14532d !important;
+}
+
+body.app-dark .status-badge.borrowed {
+  background: #451a03;
+  color: #fcd34d;
+  border: 1px solid #78350f !important;
+}
+
+body.app-dark .status-badge.overdue {
+  background: #450a0a;
+  color: #fca5a5;
+  border: 1px solid #7f1d1d !important;
+}
+
+body.app-dark .status-badge.lost {
+  background: #222222;
+  color: #94a3b8;
+  border: 1px solid #333333 !important;
+}
+
+/* Metrics & Table Value Visibility in Light & Dark Mode */
+.report-metric-borrowed,
+.report-cell-borrowed {
+  color: #b45309;
+}
+
+.report-metric-returned,
+.report-cell-available {
+  color: #16a34a;
+}
+
+.report-metric-overdue {
+  color: #dc2626;
+}
+
+.report-metric-lost,
+.report-metric-titles {
+  color: #64748b;
+  font-weight: 500;
+}
+
+body.app-dark .report-metric-borrowed,
+body.app-dark .report-cell-borrowed {
+  color: #fcd34d !important;
+}
+
+body.app-dark .report-metric-returned,
+body.app-dark .report-cell-available {
+  color: #86efac !important;
+}
+
+body.app-dark .report-metric-overdue {
+  color: #fca5a5 !important;
+}
+
+body.app-dark .report-metric-lost,
+body.app-dark .report-metric-titles {
+  color: #94a3b8 !important;
 }

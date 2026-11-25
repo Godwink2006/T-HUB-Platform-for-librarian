@@ -76,6 +76,39 @@
   gap: 1rem;
 }
 
+.catalog-header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.books-refresh-button {
+  display: inline-flex;
+  min-height: 42px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 14px;
+  border: 1px solid #dbe3ef;
+  border-radius: 20px;
+  background: #fff;
+  color: #334155;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease;
+}
+
+body.app-dark .books-refresh-button {
+  border-color: #3f3f46;
+  background: #1c1c1c;
+  color: #e4e4e7;
+}
+
 .empty-state-card {
   text-align: center;
   padding: 3rem 2rem;
@@ -133,10 +166,15 @@
 
 .books-pagination button {
   border: 0;
+  min-height: 42px;
+  border: 1px solid #dbe3ef;
   border-radius: 20px;
   padding: 11px 24px;
   background: #2563eb;
   color: #fff;
+  padding: 0 24px;
+  background: #fff;
+  color: #334155;
   font: inherit;
   font-weight: 600;
   cursor: pointer;
@@ -144,11 +182,19 @@
 
 .books-pagination button:hover:not(:disabled) {
   background: #1d4ed8;
+  background: #eff6ff;
+  color: #1d4ed8;
 }
 
 .books-pagination button:disabled {
   opacity: 0.65;
   cursor: wait;
+}
+
+body.app-dark .books-pagination button {
+  border-color: #3f3f46;
+  background: #1c1c1c;
+  color: #e4e4e7;
 }
 
 .book-card {
@@ -257,7 +303,6 @@ body.app-dark .book-view-details-btn {
   background: #333;
   color: #fff;
 }
-
 * {
   margin: 0;
   padding: 0;
@@ -269,6 +314,7 @@ body {
   background: rgb(231, 226, 226);
 }
 
+.books-container,
 .students-container {
   display: flex;
 }
@@ -330,7 +376,6 @@ body {
 .menu li a:hover {
   background: rgba(255, 255, 255, 0.15);
 }
-
 .menu li.active a {
   background: #fff;
   color: #1d4ed8;
@@ -341,39 +386,44 @@ body {
   text-align: center;
 }
 
+.books-main-content,
 .students-main-content {
   margin-left: 260px;
   width: calc(100% - 260px);
   min-height: 100vh;
 }
-
 .students-main-content.books-access-checking {
   background: #fff;
 }
 
 .student-modal-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
+  inset: 0;
   width: 100%;
   height: 100%;
   background: rgba(0, 0, 0, 0.45);
   backdrop-filter: blur(1px);
-  display: flex;
+  display: none;
   justify-content: center;
   align-items: center;
   z-index: 1000;
-  padding: 1rem;
+  padding: clamp(12px, 3vw, 24px);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }
 
 .student-modal-card {
   background: #ffffff;
   width: 100%;
-  max-width: 550px;
+  max-width: 620px;
+  max-height: min(720px, calc(100dvh - 32px));
+  height: auto;
   overflow: hidden;
   display: flex;
   flex-direction: column;
   animation: modalFadeIn 0.2s ease-out;
+  border-radius: 20px;
 }
 
 @keyframes modalFadeIn {
@@ -388,6 +438,7 @@ body {
 }
 
 .student-modal-header {
+  flex: 0 0 auto;
   padding: 1.25rem 1.5rem;
   display: flex;
   justify-content: space-between;
@@ -415,7 +466,6 @@ body {
   align-items: center;
   justify-content: center;
 }
-
 body.app-dark .student-modal-close-btn {
   background: #555;
   color: #f9fafb;
@@ -423,8 +473,11 @@ body.app-dark .student-modal-close-btn {
 
 .student-modal-body {
   padding: 1.5rem;
-  max-height: 70vh;
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }
 
 .book-history-book {
@@ -447,6 +500,25 @@ body.app-dark .student-modal-close-btn {
   overflow-wrap: anywhere;
 }
 
+.book-history-entry {
+  background: #f8fafc;
+  border: 0.5px solid rgb(219, 215, 215);
+  margin-bottom: 0.75rem;
+  padding: 1rem;
+  border-radius: 20px;
+}
+
+.book-history-entry p {
+  color: #475569;
+  line-height: 1.5;
+  margin: 0 0 0.5rem;
+  overflow-wrap: anywhere;
+}
+
+.book-history-entry p:last-child {
+  margin-bottom: 0;
+}
+
 .book-history-borrower {
   align-items: center;
   background: #f8fafc;
@@ -458,14 +530,21 @@ body.app-dark .student-modal-close-btn {
   border-radius: 20px;
 }
 
-body.app-dark .book-history-borrower, body.app-dark .student-modal-body,
-body.app-dark .book-history-book, body.app-dark .book-history-section-title,
-body.app-dark .student-modal-header, body.app-dark .empty-state-card, body.app-dark .books-page-notice, body.app-dark .books-notice-content button {
+body.app-dark .book-history-borrower,
+body.app-dark .student-modal-body,
+body.app-dark .book-history-book,
+body.app-dark .book-history-section-title,
+body.app-dark .student-modal-header,
+body.app-dark .empty-state-card,
+body.app-dark .books-page-notice,
+body.app-dark .books-notice-content button {
   background: #222 !important;
   border-color: #555;
 }
 
-body.app-dark .empty-state-card p, body.app-dark .books-page-notice, body.app-dark .books-notice-content button,
+body.app-dark .empty-state-card p,
+body.app-dark .books-page-notice,
+body.app-dark .books-notice-content button,
 body.app-dark .book-history-book h4 {
   color: #f9fafb;
 }
@@ -515,9 +594,8 @@ body.app-dark .book-history-book h4 {
   }
 
   .student-modal-card {
-    height: 100%;
-    max-height: 650px;
-    max-width: 95%;
+    max-height: min(720px, calc(100dvh - 24px));
+    max-width: 100%;
     width: 100%;
   }
 }
@@ -526,4 +604,669 @@ body.app-dark .book-history-book h4 {
   .menu-toggle {
     z-index: 100;
   }
+}
+
+body.app-dark .book-card {
+  border-color: #353535;
+  background: #1c1c1c;
+  color: #f8fafc;
+}
+
+body.app-dark .book-card-category {
+  color: #a5b4fc;
+}
+
+body.app-dark .book-card-title,
+body.app-dark .student-modal-header h3,
+body.app-dark .book-history-book h4,
+body.app-dark .book-history-section-title {
+  color: #f8fafc;
+}
+
+body.app-dark .book-card-author,
+body.app-dark .book-copies-text,
+body.app-dark .book-history-book p {
+  color: #cbd5e1;
+}
+
+body.app-dark .book-history-entry {
+  border-color: #3f3f46;
+  background: #222;
+}
+
+body.app-dark .book-history-entry p {
+  color: #cbd5e1;
+}
+
+body.app-dark .book-card-footer,
+body.app-dark .student-modal-header,
+body.app-dark .book-history-book {
+  border-color: #3f3f46;
+}
+
+body.app-dark .book-view-details-btn {
+  background: #1e3a8a;
+  color: #dbeafe;
+}
+
+body.app-dark .book-view-details-btn:hover {
+  background: #1d4ed8;
+  color: #fff;
+}
+
+body.app-dark .badge-available {
+  background: #12351f;
+  color: #86efac;
+}
+
+body.app-dark .badge-unavailable {
+  background: #431b1b;
+  color: #fca5a5;
+}
+
+body.app-dark .book-history-borrower {
+  border-color: #3f3f46;
+  background: #222;
+  color: #f8fafc;
+}
+
+body.app-dark .book-history-borrower .app-person-meta {
+  color: #f8fafc;
+}
+
+body.app-dark .student-modal-close-btn {
+  border-color: #52525b;
+  background: #27272a;
+  color: #f8fafc;
+}
+
+body.app-dark .status-borrowed {
+  background: #422006;
+  color: #fcd34d;
+}
+
+body.app-dark .status-returned {
+  background: #12351f;
+  color: #86efac;
+}
+
+body.app-dark .books-page-notice {
+  border-color: #1e40af;
+  background: #172554;
+  color: #dbeafe;
+}
+
+body.app-dark .books-page-notice[data-type="error"] {
+  border-color: #7f1d1d;
+  background: #450a0a;
+  color: #fecaca;
+}
+
+body.app-dark .books-page-notice[data-type="graduated"] {
+  border-color: #854d0e;
+  background: #422006;
+  color: #fde68a;
+}
+
+/* =========================================================
+   Book Details & Circulation Modal Styles (Light & Dark Theme)
+   ========================================================= */
+
+.student-modal-overlay {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: clamp(12px, 3vw, 24px);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+body.app-dark .student-modal-overlay {
+  background: rgba(0, 0, 0, 0.75);
+}
+
+.student-modal-card {
+  background: #ffffff;
+  width: 100%;
+  max-width: 620px;
+  max-height: min(740px, calc(100dvh - 32px));
+  height: auto;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  animation: modalFadeIn 0.2s ease-out;
+  border-radius: 20px !important;
+  box-shadow: 0 20px 40px -8px rgba(15, 23, 42, 0.2), 0 0 1px rgba(15, 23, 42, 0.1);
+  border: 1px solid #e2e8f0;
+}
+
+body.app-dark .student-modal-card {
+  background: #18181b !important;
+  border-color: #27272a !important;
+  color: #f4f4f5 !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+}
+
+.student-modal-header {
+  flex: 0 0 auto;
+  padding: 1.1rem 1.4rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #e2e8f0;
+  background: #ffffff;
+}
+
+body.app-dark .student-modal-header {
+  background: #18181b !important;
+  border-color: #27272a !important;
+}
+
+.student-modal-header h3 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+body.app-dark .student-modal-header h3 {
+  color: #f8fafc !important;
+}
+
+.student-modal-close-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50% !important;
+  border: 1px solid #e2e8f0;
+  background: #f1f5f9;
+  color: #475569;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  transition: all 0.18s ease;
+  padding: 0;
+}
+
+.student-modal-close-btn:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+  transform: scale(1.05);
+}
+
+body.app-dark .student-modal-close-btn {
+  border-color: #3f3f46;
+  background: #27272a;
+  color: #cbd5e1;
+}
+
+body.app-dark .student-modal-close-btn:hover {
+  background: #3f3f46;
+  color: #ffffff;
+}
+
+.student-modal-body {
+  padding: 1.25rem 1.4rem 1.75rem 1.4rem;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+body.app-dark .student-modal-body {
+  background: #18181b !important;
+}
+
+/* Modal Inner Scrollbar */
+.student-modal-body::-webkit-scrollbar {
+  width: 6px;
+}
+.student-modal-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+.student-modal-body::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.4);
+  border-radius: 999px;
+}
+body.app-dark .student-modal-body::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.25);
+}
+
+/* Modal Book Hero Card */
+.modal-book-hero {
+  display: flex;
+  gap: 16px;
+  padding: 14px;
+  border-radius: 16px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  margin-bottom: 1.25rem;
+}
+
+body.app-dark .modal-book-hero {
+  background: #202024 !important;
+  border-color: #2e2e34 !important;
+}
+
+.modal-book-cover {
+  width: 76px;
+  height: 104px;
+  object-fit: cover;
+  border-radius: 8px;
+  flex: 0 0 76px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  background: #f1f5f9;
+}
+
+body.app-dark .modal-book-cover {
+  border-color: #333339;
+  background: #18181b;
+}
+
+.modal-book-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.modal-book-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 3px 0;
+  line-height: 1.35;
+}
+
+body.app-dark .modal-book-title {
+  color: #f8fafc !important;
+}
+
+.modal-book-author {
+  font-size: 0.85rem;
+  color: #64748b;
+  margin: 0 0 8px 0;
+}
+
+body.app-dark .modal-book-author {
+  color: #94a3b8 !important;
+}
+
+.modal-book-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.modal-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.modal-pill-dept {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+}
+
+body.app-dark .modal-pill-dept {
+  background: #172554;
+  color: #93c5fd;
+  border-color: #1e40af;
+}
+
+.modal-pill-meta {
+  background: #f1f5f9;
+  color: #334155;
+  border: 1px solid #e2e8f0;
+}
+
+body.app-dark .modal-pill-meta {
+  background: #27272a;
+  color: #cbd5e1;
+  border-color: #3f3f46;
+}
+
+.modal-pill-available {
+  background: #f0fdf4;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+
+body.app-dark .modal-pill-available {
+  background: #052e16;
+  color: #86efac;
+  border-color: #14532d;
+}
+
+.modal-pill-unavailable {
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+
+body.app-dark .modal-pill-unavailable {
+  background: #450a0a;
+  color: #fca5a5;
+  border-color: #7f1d1d;
+}
+
+.modal-book-desc {
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: #475569;
+  margin: 0 0 10px 0;
+}
+
+body.app-dark .modal-book-desc {
+  color: #cbd5e1 !important;
+}
+
+.modal-manage-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-decoration: none;
+  background: #2563eb;
+  color: #ffffff !important;
+  transition: background 0.18s ease;
+}
+
+.modal-manage-btn:hover {
+  background: #1d4ed8;
+}
+
+body.app-dark .modal-manage-btn {
+  background: #3b82f6;
+  color: #ffffff !important;
+}
+
+body.app-dark .modal-manage-btn:hover {
+  background: #2563eb;
+}
+
+/* Circulation Section Header */
+.modal-circulation-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 1.25rem 0 0.75rem 0;
+}
+
+.modal-circulation-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+body.app-dark .modal-circulation-title {
+  color: #f8fafc !important;
+}
+
+.modal-circulation-badge {
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  background: #e2e8f0;
+  color: #334155;
+}
+
+body.app-dark .modal-circulation-badge {
+  background: #2e2e34;
+  color: #cbd5e1;
+}
+
+/* Circulation Record Cards */
+.circulation-record-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.circulation-record-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+}
+
+body.app-dark .circulation-record-card {
+  background: #202024 !important;
+  border-color: #2e2e34 !important;
+}
+
+.circulation-record-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.circulation-borrower-name {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+body.app-dark .circulation-borrower-name {
+  color: #f8fafc !important;
+}
+
+.circulation-borrower-sub {
+  font-size: 0.76rem;
+  color: #64748b;
+  margin-left: 4px;
+}
+
+body.app-dark .circulation-borrower-sub {
+  color: #94a3b8 !important;
+}
+
+/* Status Badges */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: 20px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+
+.status-badge.status-overdue {
+  background: #fee2e2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+
+body.app-dark .status-badge.status-overdue {
+  background: #450a0a !important;
+  color: #fca5a5 !important;
+  border-color: #7f1d1d !important;
+}
+
+.status-badge.status-borrowed {
+  background: #fef3c7;
+  color: #b45309;
+  border: 1px solid #fde68a;
+}
+
+body.app-dark .status-badge.status-borrowed {
+  background: #451a03 !important;
+  color: #fcd34d !important;
+  border-color: #78350f !important;
+}
+
+.status-badge.status-returned {
+  background: #dcfce7;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+
+body.app-dark .status-badge.status-returned {
+  background: #052e16 !important;
+  color: #86efac !important;
+  border-color: #14532d !important;
+}
+
+.circulation-dates-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  font-size: 0.78rem;
+  border-top: 1px solid #eef2f6;
+  padding-top: 8px;
+}
+
+body.app-dark .circulation-dates-grid {
+  border-top-color: #2b2b31;
+}
+
+.circulation-date-col {
+  display: flex;
+  flex-direction: column;
+}
+
+.circulation-date-lbl {
+  font-size: 0.7rem;
+  color: #64748b;
+  margin-bottom: 2px;
+}
+
+body.app-dark .circulation-date-lbl {
+  color: #94a3b8 !important;
+}
+
+.circulation-date-val {
+  font-weight: 600;
+  color: #1e293b;
+}
+
+body.app-dark .circulation-date-val {
+  color: #e2e8f0 !important;
+}
+
+/* Empty State */
+.circulation-empty {
+  text-align: center;
+  padding: 2rem 1.5rem;
+  border-radius: 14px;
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  color: #64748b;
+}
+
+body.app-dark .circulation-empty {
+  background: #202024 !important;
+  border-color: #3f3f46 !important;
+  color: #94a3b8 !important;
+}
+
+.circulation-empty i {
+  font-size: 1.8rem;
+  margin-bottom: 0.5rem;
+  color: #94a3b8;
+  display: block;
+}
+
+body.app-dark .circulation-empty i {
+  color: #64748b;
+}
+
+.circulation-empty p {
+  margin: 0;
+  font-size: 0.88rem;
+}
+
+.modal-bottom-spacer {
+  height: 16px;
+}
+
+/* General Dark Theme overrides for Catalog Header and Search */
+body.app-dark .catalog-container {
+  color: #f8fafc;
+}
+
+body.app-dark .catalog-header h2 {
+  color: #f8fafc;
+}
+
+body.app-dark .catalog-search-box input {
+  background: #1c1c1c;
+  border-color: #353535;
+  color: #f8fafc;
+}
+
+body.app-dark .catalog-search-box input::placeholder {
+  color: #71717a;
+}
+
+body.app-dark .catalog-search-box i {
+  color: #71717a;
+}
+
+/* Sidebar Dark Mode */
+body.app-dark :is(.sidebar, aside.sidebar) {
+  background: #000000 !important;
+  border-right: 1px solid #27272a !important;
+}
+
+body.app-dark .sidebar .logo h2 {
+  color: #ffffff !important;
+}
+
+body.app-dark .sidebar-school-name {
+  background: #18181b !important;
+  color: #cbd5e1 !important;
+  border: 1px solid #27272a !important;
+}
+
+body.app-dark .menu li a {
+  color: #a1a1aa !important;
+}
+
+body.app-dark .menu li a:hover {
+  background: #18181b !important;
+  color: #ffffff !important;
+}
+
+body.app-dark .menu li.active a {
+  background: #27272a !important;
+  color: #ffffff !important;
+}
+
+body.app-dark .menu li.active a i {
+  color: #60a5fa !important;
 }
