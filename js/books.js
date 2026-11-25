@@ -484,7 +484,7 @@ async function openStudentBookHistoryModal(bookId) {
   const historyContainer = document.getElementById("studentHistoryContent");
   if (historyContainer) {
     historyContainer.innerHTML = `
-      <div style="text-align: center; padding: 2rem; color: #64748b;">
+      <div style="text-align: center; border-radius: 20px; padding: 2rem; color: #64748b;">
         <i class="fa-solid fa-spinner fa-spin" style="margin-right: 0.5rem;"></i> Loading your history...
       </div>
     `;
@@ -544,7 +544,7 @@ async function openStudentBookHistoryModal(bookId) {
 
     if (!history || history.length === 0) {
       historyContainer.innerHTML = `${bookDetails}
-        <div class="empty-state-card">
+        <div class="empty-state-card" style="border-radius: 20px;">
           <i class="fa-solid fa-book-open-reader empty-icon"></i>
           <p>You have no borrowing history for this book yet.</p>
         </div>`;
@@ -553,7 +553,7 @@ async function openStudentBookHistoryModal(bookId) {
 
     historyContainer.innerHTML = `${bookDetails}${history
       .map((record) => `
-     <div class="small-card" style="background: #f8fafc; padding: 1rem; margin-bottom: 0.75rem; border: 0.5px solid rgb(219, 215, 215);">
+     <div class="small-card" style="background: #f8fafc; border-radius: 20px; padding: 1rem; margin-bottom: 0.75rem; border: 0.5px solid rgb(219, 215, 215);">
         <p style="margin: 0 0 0.5rem 0;"><strong>Borrowed Date:</strong> ${formatDate(record.borrow_date)}</p>
         <p style="margin: 0 0 0.5rem 0;"><strong>Due Date:</strong> ${formatDate(record.due_date)}</p>
         <p style="margin: 0 0 0.5rem 0;"><strong>Return Date:</strong> ${record.return_date ? formatDate(record.return_date) : "Not returned yet"}</p>

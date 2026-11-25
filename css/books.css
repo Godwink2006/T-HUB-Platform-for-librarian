@@ -486,6 +486,7 @@ body.app-dark .book-history-book h4 {
   padding: 0.2rem 0.5rem;
   font-weight: 600;
   font-size: 0.85rem;
+  border-radius: 20px;
 }
 
 .status-returned {
@@ -494,6 +495,7 @@ body.app-dark .book-history-book h4 {
   padding: 0.2rem 0.5rem;
   font-weight: 600;
   font-size: 0.85rem;
+  border-radius: 20px;
 }
 
 @media screen and (max-width: 768px) {
