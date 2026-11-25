@@ -20,6 +20,7 @@
   font-size: clamp(1rem, 2.2vw, 1.3rem);
   font-weight: 600;
   line-height: 1.6;
+  border-radius: 20px;
 }
 
 .books-page-notice[hidden] {
@@ -56,6 +57,7 @@
   font: inherit;
   font-size: 0.9rem;
   cursor: pointer;
+  border-radius: 20px;
 }
 
 .books-pagination-error {
@@ -120,6 +122,7 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   gap: 1.5rem;
+  border-radius: 20px;
 }
 
 .books-pagination {
@@ -154,6 +157,7 @@
   display: flex;
   flex-direction: column;
   border: 0.5px solid rgb(219, 215, 215);
+  border-radius: 20px;
 }
 
 .book-card-img-wrapper {
@@ -180,6 +184,7 @@
   font-weight: 600;
   background: rgba(255, 255, 255, 0.9);
   backdrop-filter: blur(4px);
+  border-radius: 20px;
 }
 
 .badge-available {
@@ -248,6 +253,11 @@
   cursor: pointer;
 }
 
+body.app-dark .book-view-details-btn {
+  background: #333;
+  color: #fff;
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -274,6 +284,7 @@ body {
   background: #1d4ed8;
   color: #fff;
   padding: 25px;
+  border-right: 0.5px solid rgb(219, 215, 215);
 }
 
 .logo {
@@ -405,6 +416,11 @@ body {
   justify-content: center;
 }
 
+body.app-dark .student-modal-close-btn {
+  background: #555;
+  color: #f9fafb;
+}
+
 .student-modal-body {
   padding: 1.5rem;
   max-height: 70vh;
@@ -415,6 +431,7 @@ body {
   border-bottom: 0.5px solid rgb(219, 215, 215);
   margin-bottom: 1rem;
   padding-bottom: 1rem;
+  border-radius: 20px;
 }
 
 .book-history-book h4,
@@ -438,6 +455,19 @@ body {
   gap: 0.85rem;
   margin-bottom: 1rem;
   padding: 0.85rem;
+  border-radius: 20px;
+}
+
+body.app-dark .book-history-borrower, body.app-dark .student-modal-body,
+body.app-dark .book-history-book, body.app-dark .book-history-section-title,
+body.app-dark .student-modal-header, body.app-dark .empty-state-card, body.app-dark .books-page-notice, body.app-dark .books-notice-content button {
+  background: #222 !important;
+  border-color: #555;
+}
+
+body.app-dark .empty-state-card p, body.app-dark .books-page-notice, body.app-dark .books-notice-content button,
+body.app-dark .book-history-book h4 {
+  color: #f9fafb;
 }
 
 .book-history-borrower .app-person-avatar {

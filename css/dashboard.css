@@ -198,7 +198,6 @@ body.dashboard-auth-error-open .dashboard-auth-loading__content {
 
 .menu li a:hover {
   background: rgba(255, 255, 255, 0.15);
-  border-radius: 20px;
 }
 
 .menu li.active a {
@@ -217,7 +216,6 @@ body.dashboard-auth-error-open .dashboard-auth-loading__content {
   width: calc(100% - 260px);
   min-height: 100vh;
   padding: 10px;
-  border-radius: 20px;
 }
 
 .topbar {
@@ -1062,7 +1060,7 @@ body.app-dark .menu li a:hover {
 
 body.app-dark .dashboard-profile-photo {
   border-color: #333;
-  background: #111;
+  background: #222;
 }
 
 body.app-dark .topbar h1,
@@ -1103,7 +1101,7 @@ body.app-dark .announcement-modal-content,
 body.app-dark .date-modal-content,
 body.app-dark .announcement-confirm-modal,
 body.app-dark .dashboard-theme-toggle {
-  background: #111;
+  background: #222 !important;
   border-color: #333;
   color: #fff;
 }
@@ -1137,8 +1135,13 @@ body.app-dark .dashboard-announcement-footer {
   color: #fff !important;
 }
 
-body.app-dark .dashboard-announcement .announcement-status {
+body.app-dark .dashboard-announcement {
   background: #222 !important;
+  color: #fff !important;
+}
+
+body.app-dark.announcement-status{
+  background: #444 !important;
   color: #fff !important;
 }
 
@@ -1237,7 +1240,7 @@ body.app-dark .announcement-error-retry,
 body.app-dark .dashboard-error-retry,
 body.app-dark .announcement-confirm-cancel,
 body.app-dark .announcement-delete-btn {
-  background: #222;
+  background: #333;
   border-color: #444;
   color: #fff;
 }
