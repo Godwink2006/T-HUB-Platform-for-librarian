@@ -636,8 +636,9 @@ window.forceLogout = async function () {
     if (!button || button.disabled) return;
     button.disabled = true;
     button.classList.add("is-refreshing");
-    button.innerHTML = '<i class="fa-solid fa-rotate fa-spin" aria-hidden="true"></i><span>Refreshing</span>';
+    button.innerHTML = '<i class="fa-solid fa-rotate fa-spin" aria-hidden="true"></i><span>Refreshing...</span>';
     try {
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
       const page = location.pathname.split("/").pop();
       const { data } = await window.supabaseClient?.auth?.getSession?.() || {};
       const userId = data?.session?.user?.id;

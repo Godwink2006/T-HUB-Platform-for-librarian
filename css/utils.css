@@ -304,6 +304,12 @@ body.app-dark .librarian-page-refresh {
   border-color: #475569;
 }
 
+body.app-dark .librarian-page-refresh:hover:not(:disabled) {
+  background: #334155;
+  border-color: #64748b;
+  color: #fff;
+}
+
 html.auth-welcome-open,
 html.auth-welcome-open body {
   overflow: hidden !important;
